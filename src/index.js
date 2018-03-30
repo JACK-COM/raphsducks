@@ -8,7 +8,7 @@ let Reducers = {};
 const assertIsFunction = object => typeof object === "function";
 const makeNullAction = type => ({ type, payload: null });
 
-export default function create(reducers, initialState = null) {
+module.exports = function create(reducers, initialState = null) {
     const keys = [];
     // Initialize reducers
     Object.keys(reducers).forEach(key => {

@@ -1,6 +1,6 @@
 {
   "name": "raphsducks",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A lightweight publish-subscribe state manager.",
   "main": "./src/index.js",
   "scripts": {
@@ -17,16 +17,6 @@
     "publish",
     "subscribe"
   ],
-  "jest": {
-    "moduleFileExtensions": [
-      "ts",
-      "tsx",
-      "js"
-    ],
-    "transform": {
-      "^.+\\.(js)$": "<rootDir>/node_modules/babel-jest"
-    }
-  },
   "author": "JACKCOM",
   "license": "WTFPL",
   "devDependencies": {
