@@ -1,6 +1,6 @@
 {
   "name": "@jackcom/raphsducks",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "A lightweight publish-subscribe state manager.",
   "main": "./lib/raphsducks.js",
   "scripts": {
@@ -21,6 +21,10 @@
     "subscribe"
   ],
   "author": "JACKCOM",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/JACK-COM/raphsducks.git"
+  },
   "license": "WTFPL",
   "devDependencies": {
     "babel-core": "^6.26.0",
