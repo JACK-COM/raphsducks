@@ -2,7 +2,7 @@
 Sweet merciful heavens; not _another_ State Manager...
 
 ## Installation
-    npm install raphsducks
+    npm i @jackcom/raphsducks
 
 ## Usage: (or how to interact with hypothetical ducks)
 ### Instantiate your store using the result of `create(reducers)`
