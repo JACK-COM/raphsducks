@@ -1,14 +1,14 @@
 {
   "name": "@jackcom/raphsducks",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "A lightweight publish-subscribe state manager.",
-  "main": "./build/raphsducks.js",
+  "main": "./lib/raphsducks.js",
   "scripts": {
     "test": "jest --watchAll",
     "build": "node compile.js"
   },
   "files": [
-    "/build"
+    "/lib"
   ],
   "engines": {
     "node": ">=7.7.4"
