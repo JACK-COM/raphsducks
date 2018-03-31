@@ -1,5 +1,5 @@
 {
-  "name": "raphsducks",
+  "name": "@jackcom/raphsducks",
   "version": "0.1.1",
   "description": "A lightweight publish-subscribe state manager.",
   "main": "./src/index.js",
