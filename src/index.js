@@ -1,14 +1,16 @@
+module.exports = create;
+
 // Listeners go here
 let subscribers = [];
 // Application state goes here
 let state = {};
 // Reducers go here
 let Reducers = {};
-
+// Helpers
 const assertIsFunction = object => typeof object === "function";
 const makeNullAction = type => ({ type, payload: null });
 
-module.exports.default = function create(reducers, initialState = null) {
+function create(reducers, initialState = null) {
     const keys = [];
     // Initialize reducers
     Object.keys(reducers).forEach(key => {
