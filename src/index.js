@@ -1,4 +1,4 @@
-module.exports = create;
+export default create;
 
 // Listeners go here
 let subscribers = [];
