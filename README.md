@@ -121,6 +121,8 @@ Run tests with `npm test`
 * Not everyone needs redux. 
 * For the record, not everyone needs _raphsducks_, either
 * In fact, _not everyone needs state_. 
+* ...You're right. Why _not_ just use redux?
 
-I only wanted something with the pub/sub API, which would allow me to quickly extend an application's state without getting into fist-fights with multiple application files. Redux does a good deal more than _raphsducks_'s humble collection of lines, and has years of testing and a vibrant community behind it. I have never used it, but would likely recommend it if you've got a large enough team, a complex enough project, _and_ lack the ability to build your application from the ground up.
+Redux does a good deal more than _raphsducks_'s humble collection of lines. Although I have never used it, I would likely recommend redux over this module if your application is complex enough. 
 
+I wanted something lightweight with the pub/sub API, which would allow me to quickly extend an application's state without getting into fist-fights with multiple application files, so I built this. As with many modern JS offerings, I acknowledge that it _could be_ the result of thinking about a problem wrong: use at your discretion.
