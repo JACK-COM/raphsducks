@@ -8,14 +8,14 @@ Sweet merciful heavens; not _another_ State Manager...
 ### Instantiate your store using the result of `create(reducers)`
 ```javascript
     // File: Store.js
+    import create from '@jackcom/raphsducks';
+    import reducer1 from './path/to/functions/reducer1';
+    import reducer2 from './other/path/to/functions/reducer2';
+    import * as MyGroupOfFunctions from './somewhere/else';
 
-    import reducer1 from './reducer1';
-    import reducer2 from './reducer2';
-    import * as GroupOfFunctions from './somewhere/else';
-
-    const MyStore = create({ reducer1, reducer2, ...GroupOfFunctions });
+    const MyStore = create({ reducer1, reducer2, ...MyGroupOfFunctions });
     export default MyStore;
-    
+
     // or: export default create({ reducer1, reducer2, ...GroupOfFunctions });
 ```
 `create(reducers)` will: 
@@ -106,24 +106,22 @@ Run tests with `npm test`
 ### Does this need React or Redux?
     Nope
 * Although it was inspired by using one, and learning patterns from the latter, this is _severely_ unrelated to both. 
+* This was directly inspired by [Dan Abramov's egghead.io tutorial](https://egghead.io/courses/getting-started-with-redux "Getting started with Redux")
+* That said, _raphsducks_ is vanilla JS.
 
 ### Can I use this in React?
-    Probably
-* This project duplicates the core of a system that I _originally developed in a React application_. 
-* The `Store/API` was always kept as vanilla JS for easy transfer between projects
-* You can probably interact with it using the HOC/provider pattern:
-    * Create a `WrapperComponent` to handle subscribing and unsubscribing from the `Store`
-    * `WrapperComponent` uses a `mapPropsToState` fn to copy the parts of `Store.getState()` that it cares about to its internal state
-    * On update, `WrapperComponent` checks if the "interesting" parts of `Store.getState()` have changed
-    * If so, `WrapperComponent` updates and supplies props to the wrapped component
+~~Probably~~
+    Yes, using the HOC/provider pattern:
+1. Create a `WrapperComponent` to handle subscribing and unsubscribing from the `Store`
+2. `WrapperComponent` uses a `mapPropsToState` function to copy the parts of `Store.getState()` that it cares about to its internal state
+3. On update, `WrapperComponent` checks if the "interesting" parts of `Store.getState()` have changed
+4. If so, `WrapperComponent` updates and supplies props to the wrapped component
+5. Export dependants as `WrapperComponent(MyDependantComponent, mapPropsToState)`
 
 ### Why not just use redux?
 * ~~Because _clearly_, Javascript needs MOAR solutions for solved problems.~~
-* Not everyone needs redux. 
-* For the record, not everyone needs _raphsducks_, either
+* Not everyone needs redux. Not everyone needs _raphsducks_, either
 * In fact, _not everyone needs state_. 
 * ...You're right. Why _not_ just use redux?
 
-Redux does a good deal more than _raphsducks_'s humble collection of lines. Although I have never used it, I would likely recommend redux over this module if your application is complex enough. 
-
-I wanted something lightweight with the pub/sub API, which would allow me to quickly extend an application's state without getting into fist-fights with multiple application files, so I built this. As with many modern JS offerings, I acknowledge that it _could be_ the result of thinking about a problem wrong: use at your discretion.
+Redux does a good deal more than _raphsducks_'s humble collection of lines. I wanted something lightweight with the pub/sub API, which would allow me to quickly extend an application's state without getting into fist-fights with multiple application files, so I built this. As with many modern JS offerings, I acknowledge that it _could be_ the result of thinking about a problem wrong: use at your discretion.

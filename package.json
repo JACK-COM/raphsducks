@@ -1,6 +1,6 @@
 {
   "name": "@jackcom/raphsducks",
-  "version": "0.1.10",
+  "version": "0.1.11",
   "description": "A lightweight publish-subscribe state manager.",
   "main": "lib/raphsducks.js",
   "scripts": {
