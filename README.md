@@ -6,7 +6,7 @@ Sweet merciful heavens; not _another_ State Manager...
 
 ## Usage: (or how to interact with hypothetical ducks)
 ### Instantiate your store using the result of `create(reducers)`
-```
+```javascript
     // File: Store.js
 
     import reducer1 from './reducer1';
@@ -14,8 +14,9 @@ Sweet merciful heavens; not _another_ State Manager...
     import * as GroupOfFunctions from './somewhere/else';
 
     const MyStore = create({ reducer1, reducer2, ...GroupOfFunctions });
-    
     export default MyStore;
+    
+    // or: export default create({ reducer1, reducer2, ...GroupOfFunctions });
 ```
 `create(reducers)` will: 
 * Construct an initial state using the `reducers` object. 
@@ -23,7 +24,7 @@ Sweet merciful heavens; not _another_ State Manager...
 * Return an object with `getState, dispatch, subscribe` methods.
 
 ### Import your store anywhere you want to interact with it.
-```
+```javascript
     import { getState, dispatch, subscribe } from './path/to/Store.js';
     
     // or: import Store from './path/to/Store.js';
@@ -32,24 +33,24 @@ Sweet merciful heavens; not _another_ State Manager...
 
 ### Interact with it.
 * Subscribe for updates (receives updated `state` when called)
-```
+```javascript
     const unsubscribe = subscribe(state => /* do something with state.properties */);
 ```
 
 * Get values
-```
+```javascript
     const { someStateProperty } = getState();
 ```
     
 * Make updates
-```
+```javascript
     const updatedProperty = getState().numericalStateProperty + 1;
 
     dispatch({ type: "NAME_OF_REDUCER_I_WANT_TO_CALL", payload: updatedProperty });
 ```
 
 * Batch updates (will notify subscribers once all have been processed)
-```
+```javascript
     dispatch(
         { type: "A_REDUCER", payload: someValue },
         { type: "ANOTHER_REDUCER", payload: [anUnrelatedValue, "An expletive"] },
@@ -58,7 +59,7 @@ Sweet merciful heavens; not _another_ State Manager...
 ```
 
 * Unsubscribe
-```
+```javascript
     const unsubscribe = subscribe(myUpdateFunctionReference);
 
     unsubscribe();
