@@ -5,68 +5,64 @@ Sweet merciful heavens; not _another_ State Manager...
     npm i @jackcom/raphsducks
 
 ## Usage: (or how to interact with hypothetical ducks)
-### Instantiate your store using the result of `create(reducers)`
-```javascript
+### Instantiate your store using the result of `create(reducers, isUniqueStore)`
+```typescript
     // File: Store.js
     import create from '@jackcom/raphsducks';
-    import reducer1 from './path/to/functions/reducer1';
-    import reducer2 from './other/path/to/functions/reducer2';
+    import reducer1 from './my/path/to/reducers/reducer1';
+    import reducer2 from './my/path/to/reducers/reducer2';
     import * as MyGroupOfFunctions from './somewhere/else';
 
-    const MyStore = create({ reducer1, reducer2, ...MyGroupOfFunctions });
-    export default MyStore;
+    // Copy all functions into an object
+    const mergedReducers = { reducer1, reducer2, ...MyGroupOfFunctions };
+    // Create a shared store for all subscribers
+    const BooksStore = create(mergedReducers);
+    // Or a unique instance, isolated from `BookStore`,
+    // using the optional boolean param `isUniqueStore`
+    const SomeRelatedStore = create(mergedReducers, true);
 
-    // or: export default create({ reducer1, reducer2, ...GroupOfFunctions });
+    export default BooksStore; // or just export create(mergedReducers);
+    export SomeRelatedStore;
+
 ```
-`create(reducers)` will: 
+`create(reducers, isUniqueStore)` will: 
 * Construct an initial state using the `reducers` object. 
-    * Unless a particular reducer uses default arguments (not recommended), all initial state values will be `null`. 
-* Return an object with `getState, dispatch, subscribe` methods.
+* Return a State object with `getState, dispatch, subscribe` methods.
+* The State object has keys reflecting all supplied reducers, and values of null
+    * You can change this by giving a particular reducer default arguments (not recommended)
 
-### Import your store anywhere you want to interact with it.
-```javascript
+`create(reducers, true)` will create a unique Store or state instance, which is helpful 
+when you want to manage groups of subscribers separately
+
+```typescript
+    // Import your store anywhere you want to interact with it.
     import { getState, dispatch, subscribe } from './path/to/Store.js';
-    
-    // or: import Store from './path/to/Store.js';
-    // gives: Store.getState, Store.dispatch, Store.subscribe 
-```
+    // import Store from './path/to/Store.js'; => Store.getState, ... 
 
-### Interact with it.
-* Subscribe for updates (receives updated `state` when called)
-```javascript
-    const unsubscribe = subscribe(state => /* do something with state.properties */);
-```
-
-* Get values
-```javascript
+    // Define your state listener
+    const onStateChange = (state, actionsPerformed) => {
+        // `state` = copy of updated state
+        // `actionsPerformed` = object whose keys are the last actions dispatched
+        // Check for state props and update as needed
+    };
+    // Create unsubscribe function by subscribing to store
+    const unsubscribe = subscribe(onStateChange); 
+    // Get values by calling `getState`
     const { someStateProperty } = getState();
-```
-    
-* Make updates
-```javascript
+    // Make or batch updates
+    // (notifies subscribers when all have been processed)
     const updatedProperty = getState().numericalStateProperty + 1;
-
-    dispatch({ type: "NAME_OF_REDUCER_I_WANT_TO_CALL", payload: updatedProperty });
-```
-
-* Batch updates (will notify subscribers once all have been processed)
-```javascript
     dispatch(
-        { type: "A_REDUCER", payload: someValue },
+        { type: "NAME_OF_REDUCER_I_WANT_TO_CALL", payload: updatedProperty },
         { type: "ANOTHER_REDUCER", payload: [anUnrelatedValue, "An expletive"] },
         ...
     );
-```
-
-* Unsubscribe
-```javascript
-    const unsubscribe = subscribe(myUpdateFunctionReference);
-
+    // Unsubscribe
     unsubscribe();
 ```
 
 ## API
-### `create(reducers: {[string]: Function })` => ({ getState, dispatch, subscribe })
+### `create(reducers: {[string]: Function }, isUniqueStore? : true | undefined)` => ({ getState, dispatch, subscribe })
 * Create a new Store using the supplied `reducers`
     * `reducers` is an object whose keys are strings, and whose values are functions.
 * Each `reducer` is a pure function that converts its arguments into (and returns) an object-literal
@@ -94,10 +90,18 @@ Run tests with `npm test`
 
 ## Explanation 
 ### What is (are?) `Raph's Ducks`?
-    Another redux-inspired publish/subscribe state-management system. 
-* Defines a single State object, to which any component can listen for changes
-* Uses the familiar `dispatch`, `getState`, and `subscribe` API for notifying of update, checking current state, and, listening to state updates, respectively
+    A(nother) redux-inspired publish/subscribe state-management system. 
+* Defines a unique or shared State object, to which any component can subscribe for changes
+* Uses a familiar `dispatch`, `getState`, and `subscribe` API for notifying of update, checking current state, and, listening to state updates, respectively
 * Includes a `create` method for instantiating the state/store
+
+### How is it different from Redux?
+_Raphsducks_ is a very lightweight library that allows you to instantiate a state and subscribe to/unsubscribe from it. Some key differences between how it operates and redux (as far as I'm currently aware) are: 
+* It passes a copy of the updated state to subscribers following a dispatch
+* It also passes an object whose keys are recently-called Store reducers.
+
+To the latter point, this object simplifies the process of checking what state keys were updated (as opposed to comparing the objects themselves). If a key is in the object, that reducer was just called to update the state. Since reducers will only operate on one value at a time, a subscriber can use this to infer what state updates can be safely ignored. This however is left to the _Raphsducks_ user to implement or ignore, a choice which doesn't impact using the library.
+
 
 ### Why did you choose that name?
     I didn't.             ( ._.)
@@ -105,9 +109,9 @@ Run tests with `npm test`
 
 ### Does this need React or Redux?
     Nope
-* Although it was inspired by using one, and learning patterns from the latter, this is _severely_ unrelated to both. 
 * This was directly inspired by [Dan Abramov's egghead.io tutorial](https://egghead.io/courses/getting-started-with-redux "Getting started with Redux")
 * That said, _raphsducks_ is vanilla JS.
+* Although it was inspired by using one, and learning patterns from the latter, this is _severely_ unrelated to both redux and React at this time. 
 
 ### Can I use this in React?
 ~~Probably~~

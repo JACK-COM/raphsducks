@@ -13,8 +13,10 @@ const {
     subscribe, 
     getState
 } = create({ SET_BOOLEAN, SET_TODOS });
+// Init unique store
+const UniqueStore = create({ SET_BOOLEAN, SET_TODOS }, true);
 
-test('Initializes state with defined properties and null values', () => {
+test('Initializes shared state with defined properties and null values', () => {
     const { todos, boolean } = getState();
     expect(todos).toBeDefined();
     expect(todos).toBeNull();
@@ -23,28 +25,35 @@ test('Initializes state with defined properties and null values', () => {
     expect(boolean).toBeNull();
 })
 
-test('Adds a property to the state', () => {
+test('Adds a unique property to the state', () => {
     expect(getState().todos).toBeNull();
     // 
     dispatch(setTodos([{ name: "Task1", done: false }]));
     expect(getState().todos).toBeTruthy();
+    // 
+    expect(UniqueStore.getState().todos).toBeNull();
 })
 
-test('Updates a property on state', () => {
+test('Updates a unique property on state', () => {
     expect(getState().boolean).toBeNull();
     // 
     dispatch(setBool(!getState().boolean));
     expect(getState().boolean).toBe(true);
+    expect(UniqueStore.getState().boolean).toBeNull();
     // 
     dispatch(setBool(!getState().boolean));
     expect(getState().boolean).toBe(false);
+    expect(UniqueStore.getState().boolean).toBeNull();
 })
 
-test('Notifies a listener', () => {
+test('Notifies a unique listener', () => {
     const listener = jest.fn();
+    const uniqueListener = jest.fn();
     const unsubscribe = subscribe(listener);
+    const uniqueUnsubscribe = UniqueStore.subscribe(uniqueListener);
     // 
     dispatch(setBool(!getState().boolean));
     expect(listener).toHaveBeenCalled();
+    expect(uniqueListener).not.toHaveBeenCalled();
     unsubscribe();
 })

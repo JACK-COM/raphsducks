@@ -10,7 +10,17 @@ let Reducers = {};
 const assertIsFunction = object => typeof object === "function";
 const makeNullAction = type => ({ type, payload: null });
 
-function create(reducers, initialState = null) {
+/**
+ * Create a `Store` to represent application state. Takes 
+ * `reducers` (key-value object whose values are functions that write
+ * to unique state properties), optional `uniqueStore` to specify whether
+ * created store is unique instance or shared as singleton
+ * @param {*} reducers 
+ * @param {boolean} uniqueStore 
+ */
+function create(reducers, uniqueStore = false) {
+    if (uniqueStore === true) return new Store(reducers);
+
     const keys = [];
     // Initialize reducers
     Object.keys(reducers).forEach(key => {
@@ -43,25 +53,77 @@ function create(reducers, initialState = null) {
     };
 }
 
+/**
+ * `Store` is a class representation of the magic here; instantiable to 
+ * allow tracking/managing separate groups of subscribers
+ */
+class Store {
+    constructor(reducers) {
+        this.subscribers = [];
+        this.state = {};
+        this.reducers = reducers;
+        
+        const keys = Object.keys(reducers);
+        this.dispatch(...keys.map(makeNullAction))
+    }
+
+    dispatch(...actions) {
+        if (actions.length === 0) {
+            throw new Error("Invalid dispatch: check action parameters");
+        }
+    
+        const types = {};
+        actions.forEach(action => {
+            this.state = reduce(this.state, action);
+            types[action.type] = true;
+        });
+    
+        const nextState = {...this.state};
+        subscribers.forEach(listener => listener(nextState, types));
+    }
+
+    getState() {
+        return Object.assign({}, { ...this.state });
+    }
+
+    subscribe(listener) {
+        // This better be a function. Or Else.
+        if (typeof listener !== "function") {
+            throw new Error(`Invalid listener: '${typeof listener}' is not a function`);
+        }
+
+        if (this.subscribers.indexOf(listener) > -1) return;
+        // Add listener
+        this.subscribers.push(listener);
+        // return unsubscriber function
+        return () => this.subscribers = this.subscribers.filter(l => !(l === listener));
+    }
+}
+
 function dispatch(...actions) {
     if (actions.length === 0) {
         throw new Error("Invalid dispatch: check action parameters");
     }
 
-    actions.forEach(action => state = reduce(state, action));
+    const types = {};
+    actions.forEach(action => {
+        state = reduce(state, action);
+        types[action.type] = true;
+    });
+
     const nextState = {...state};
-    subscribers.forEach(listener => listener(nextState));
+    subscribers.forEach(listener => listener(nextState, types));
 }
 
 function getState() {
     return Object.assign({}, {...state});
 }
 
-function reduce(state, action) {
+function reduce(state, action, reducers = Reducers) {
     const { type, payload } = action;
-    if (!Reducers[type]) return state;
+    if (!reducers[type]) return state;
     // 
-    return Object.assign({}, {...state}, Reducers[type](payload));
+    return Object.assign({}, {...state}, reducers[type](payload));
 }
 
 function subscribe(listener) {
