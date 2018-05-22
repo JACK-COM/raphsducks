@@ -3,7 +3,7 @@ Sweet merciful heavens; not _another_ State Manager...
 
 ## Table Of Contents
 * [Installation](#installation)
-* [Usage](#usage:-or-how-to-interact-with-hypothetical-ducks)
+* [Usage](#usage)
 * [API](#api)
     * [create](#create(setters,-isUniqueState?))
     * [dispatch](#dispatch(...actions))
@@ -20,7 +20,7 @@ Sweet merciful heavens; not _another_ State Manager...
 ## Installation
     npm i @jackcom/raphsducks
 
-## Usage: (or how to interact with hypothetical ducks)
+## Usage
 ### 1. Instantiate and export your `state` using the result of `create(setters, isUniqueState)`
 ```typescript
     // File: MyApplicationState.js
