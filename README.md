@@ -2,20 +2,20 @@
 Sweet merciful heavens; not _another_ State Manager...
 
 ## Table Of Contents
-* [Installation](#Installation)
-* [Usage: (or how to interact with hypothetical ducks)](#Usage:-(or-how-to-interact-with-hypothetical-ducks))
-* [API](#API)
+* [Installation](#installation)
+* [Usage](#usage:-(or-how-to-interact-with-hypothetical-ducks))
+* [API](#api)
     * [create](#create(setters,-isUniqueState?))
     * [dispatch](#dispatch(...actions))
-    * [subscribe](#subscribe(listener)`)
+    * [subscribe](#subscribe(listener))
     * [getState](#getState())
-* [Terminology](#Terminology)
-    * [Actions](#Actions)
-    * [Listener Functions](#Listener-Functions)
-    * [Setter Functions](#Setter-Functions)
-    * [(Application) State](#(Application)-State)
-* [Explanation](#Explanation)
-* [Development](#Development)
+* [Terminology](#terminology)
+    * [Actions](#actions)
+    * [Listener Functions](#listener-functions)
+    * [Setter Functions](#setter-functions)
+    * [(Application) State](#application-state)
+* [Explanation](#explanation)
+* [Development](#development)
 
 ## Installation
     npm i @jackcom/raphsducks
@@ -78,19 +78,19 @@ Sweet merciful heavens; not _another_ State Manager...
 
 ## API
 ### `create(setters, isUniqueState?)`
-* Creates a new `state`  using the supplied [setters](#Setter-Functions). Parameters:
+* Creates a new `state`  using the supplied [setters](#setter-functions). Parameters:
     * `setters`: an object with string keys and function values.
     * `isUniqueState`: optional boolean that, if specified, will create a unique state instance. 
-* Returns: an initial [State](#State,-Application-State "Application State") with keys reflecting all supplied setters, and initial values of null
+* Returns: an initial [State](#application-state "Application State") with keys reflecting all supplied setters, and initial values of null
 
 ### `dispatch(...actions)`
 * Uses the supplied `actions` to update state. Parameters: 
-    * `action`: an object literal with a `type` and `payload` property. See [Actions](#Actions "Actions")
+    * `action`: an object literal with a `type` and `payload` property. See [Actions](#actions "Actions")
 * Returns `void`
 
 ### `subscribe(listener)`
 * Listens for state modifications and creates an 'unsubscription' function
-* Call [listener()](#Listener-Functions) when state changes
+* Call [listener()](#listener-functions) when state changes
 * Returns a function to unsubscribe from state changes
 
 ### `getState()` 
@@ -100,40 +100,37 @@ Sweet merciful heavens; not _another_ State Manager...
 
 ## Terminology
 ### `Actions`
-An `Action` is an object literal describing a single operation to perform on your `state`. 
-* Properties:
-    * `type`: a string whose value is the name of the [setter](#Setter-Functions "Setter Functions") you want to call
+An `Action` is an object literal describing a single operation to perform on your `state`. Required properties:
+    * `type`: a string whose value is the name of the [setter](#setter-functions "Setter Functions") you want to call
     * `payload`: any value(s) to be returned by the called `setter`
 
 ### `Listener Functions`
-A `listener` is a function that reacts to state updates. 
-* Parameters: 
+A `listener` is a function that reacts to state updates. Required parameters: 
     * `state`: the updated `state` object. 
     
-```javascript
-    // A basic Listener: 
+```typescript
+    // A basic Listener runs comparisons against internals: 
     const myListener = (updatedState) => {
-        // Run comparisons against internals
-        if (updatedState.someProperty !== myPreviousStateCopy.someProperty) {
-            // do something! be somebody!
-        }
+        if (updatedState.someProperty === myPreviousStateCopy.someProperty) return; 
+        // else, `state.someProperty` changed: do something with it! Be somebody!
     };
 ```
 
 ### `Setter Functions`
 A `setter` is a "pure" JS function (no side-effects) that sets one or more properties on a state object. 
-A basic example looks like this, 
-```javascript
-function MY_SETTER(todos) {
+You write `setter` functions either as properties of a global object-literal export, or 
+as individual function exports, which might be easier for testing.
+
+```typescript
+// A basic setter example
+export function MY_SETTER(todos) {
     return { "todos": todos }; // or ES6: return ({ todos })
 }
 ```
-In this example, `todos` will be used to create and write to the state property `State.todos`.
-You write `setter` functions either as properties of a global object-literal export, or 
-as individual function exports, which might be easier for testing. 
+In this example, `todos` will be used to create and write to the state property `State.todos`. 
 
-### `(Application) State`
-* An object representing an application at a point in time
+### `Application State`
+Your `Application State` is an object representing your application at a point in time.
 * Can be interacted with via {getState, dispatch, subscribe} methods
 * You can override an initial state value of null by supplying default arguments (not recommended!)
 
