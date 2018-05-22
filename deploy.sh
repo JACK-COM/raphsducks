@@ -7,4 +7,4 @@ npm run build &&
 npm publish && 
 
 # push to github
-github push -u
+git push -u

@@ -5,7 +5,7 @@ Sweet merciful heavens; not _another_ State Manager...
 * [Installation](#installation)
 * [Usage](#usage)
 * [API](#api)
-    * [create](#create(setters,-isUniqueState?))
+    * [createState](#createState(setters))
     * [dispatch](#dispatch(...actions))
     * [subscribe](#subscribe(listener))
     * [getState](#getState())
@@ -21,23 +21,21 @@ Sweet merciful heavens; not _another_ State Manager...
     npm i @jackcom/raphsducks
 
 ## Usage
-### 1. Instantiate and export your `state` using the result of `create(setters, isUniqueState)`
+### 1. Instantiate and export your `state` using the result of `createState(setters)`
 ```typescript
     // File: MyApplicationState.js
     import createState from '@jackcom/raphsducks';
 
     // import your state property setters
-    import { anotherSetterFunction } from './my/path/to/setters';
-    import * as aGroupOfFunctions from './somewhere/else';
+    import * as aGroupOfSetterFunctions from './path/to/my/setters';
 
     // Define or import state property setters
     const setTodos = (todos: ToDo[]) => ({ todos });
     
     // Merge setters into an object
-    const mergedSetters = { setTodos, anotherSetterFunction, ...aGroupOfFunctions };
+    const mergedSetters = { setTodos, ...aGroupOfSetterFunctions };
     
-    // Export a single `GlobalApplicationState`
-    // or multiple unique instances with composed setters
+    // Export one or more unique instances 
     export default createState(mergedSetters);
 
 ```
@@ -70,10 +68,9 @@ Sweet merciful heavens; not _another_ State Manager...
 
 
 ## API
-### `create(setters, isUniqueState?)`
+### `createState(setters)`
 * Creates a new `state`  using the supplied [setters](#setter-functions). Parameters:
     * `setters`: an object with string keys and function values.
-    * `isUniqueState`: optional boolean that, if specified, will create a unique state instance. 
 * Returns: an initial [State](#application-state "Application State") with keys reflecting all supplied setters, and initial values of null
 
 ### `dispatch(...actions)`
