@@ -4,47 +4,47 @@ export default create;
 let subscribers = [];
 // Application state goes here
 let state = {};
-// Reducers go here
-let Reducers = {};
+// Application state property setters go here
+let Setters = {};
 // Helpers
 const assertIsFunction = object => typeof object === "function";
 const makeNullAction = type => ({ type, payload: null });
 
 /**
- * Create a `Store` to represent application state. Takes 
- * `reducers` (key-value object whose values are functions that write
- * to unique state properties), optional `uniqueStore` to specify whether
+ * Create an `Application State` object representation. This requires 
+ * `setters` (key-value object whose values are functions that write
+ * to unique state properties), and an optional boolean to specify whether
  * created store is unique instance or shared as singleton
- * @param {*} reducers 
- * @param {boolean} uniqueStore 
+ * @param {*} setters 
+ * @param {boolean} shouldBeUniqueInstance 
  */
-function create(reducers, uniqueStore = false) {
-    if (uniqueStore === true) return new Store(reducers);
+function create(setters, shouldBeUniqueInstance = false) {
+    if (shouldBeUniqueInstance === true) return new ApplicationState(setters);
 
     const keys = [];
     // Initialize reducers
-    Object.keys(reducers).forEach(key => {
+    Object.keys(setters).forEach(key => {
 
-        if (!reducers.hasOwnProperty(key)) return;
+        if (!setters.hasOwnProperty(key)) return;
         // Property must be a function
-        if (!assertIsFunction(reducers[key])) {
+        if (!assertIsFunction(setters[key])) {
             throw new Error(`Invalid reducer: property ${key}'' is not a function`);
         }
         // Property name must be unique
-        if (Reducers[key]) {
+        if (Setters[key]) {
             throw new Error(`Conflict: reducer "${key}" has already been registered`);
         }
 
         // Assign property to Reducers
-        Reducers[key] = reducers[key];
+        Setters[key] = setters[key];
         keys.push(key);
     });
 
     // Initialize state
-    dispatch(...keys.map(makeNullAction));
+    const initActions = keys.map(makeNullAction)
+    dispatch(...initActions);
 
     // Return methods
-
     return {
         create,
         getState,
@@ -54,32 +54,25 @@ function create(reducers, uniqueStore = false) {
 }
 
 /**
- * `Store` is a class representation of the magic here; instantiable to 
- * allow tracking/managing separate groups of subscribers
+ * `ApplicationState` is a class representation of the magic here. 
+ * It is instantiable so a user can manage multiple subscriber groups
  */
-class Store {
-    constructor(reducers) {
-        this.subscribers = [];
+class ApplicationState {
+    
+    constructor(stateSetters) {
+        this.setters = stateSetters;
         this.state = {};
-        this.reducers = reducers;
-        
-        const keys = Object.keys(reducers);
-        this.dispatch(...keys.map(makeNullAction))
+        this.subscribers = [];
+        // Initialize state with null props
+        const initActions = Object.keys(stateSetters).map(makeNullAction);
+        this.dispatch(...initActions);
     }
 
     dispatch(...actions) {
         if (actions.length === 0) {
             throw new Error("Invalid dispatch: check action parameters");
         }
-    
-        const types = {};
-        actions.forEach(action => {
-            this.state = reduce(this.state, action);
-            types[action.type] = true;
-        });
-    
-        const nextState = {...this.state};
-        subscribers.forEach(listener => listener(nextState, types));
+        this.state = __updateStateAndNotify(this.state, this.setters, actions, this.subscribers);
     }
 
     getState() {
@@ -87,16 +80,7 @@ class Store {
     }
 
     subscribe(listener) {
-        // This better be a function. Or Else.
-        if (typeof listener !== "function") {
-            throw new Error(`Invalid listener: '${typeof listener}' is not a function`);
-        }
-
-        if (this.subscribers.indexOf(listener) > -1) return;
-        // Add listener
-        this.subscribers.push(listener);
-        // return unsubscriber function
-        return () => this.subscribers = this.subscribers.filter(l => !(l === listener));
+        return __linkSubscription(listener, this.subscribers)
     }
 }
 
@@ -104,37 +88,42 @@ function dispatch(...actions) {
     if (actions.length === 0) {
         throw new Error("Invalid dispatch: check action parameters");
     }
-
-    const types = {};
-    actions.forEach(action => {
-        state = reduce(state, action);
-        types[action.type] = true;
-    });
-
-    const nextState = {...state};
-    subscribers.forEach(listener => listener(nextState, types));
+    state = __updateStateAndNotify(state, Setters, actions, subscribers);
 }
 
 function getState() {
     return Object.assign({}, {...state});
 }
 
-function reduce(state, action, reducers = Reducers) {
-    const { type, payload } = action;
-    if (!reducers[type]) return state;
-    // 
-    return Object.assign({}, {...state}, reducers[type](payload));
+function subscribe(listener) {
+    return __linkSubscription(listener, subscribers)
 }
 
-function subscribe(listener) {
+// Helpers (to minimize code duplication)
+function __linkSubscription(listener, subscribersList){
     // This better be a function. Or Else.
     if (typeof listener !== "function") {
         throw new Error(`Invalid listener: '${typeof listener}' is not a function`);
     }
 
-    if (subscribers.indexOf(listener) > -1) return;
+    if (subscribersList.indexOf(listener) > -1) return;
     // Add listener
-    subscribers.push(listener);
+    subscribersList.push(listener);
     // return unsubscriber function
-    return () => subscribers = subscribers.filter(l => !(l === listener));
+    return () => subscribersList = subscribersList.filter(l => !(l === listener));
+
+}
+
+// `__merge` updates state one property at a time
+function __updateState(state, setters, action) {
+    const { type, payload } = action;
+    if (!setters[type]) return state;
+    return Object.assign({...state}, setters[type](payload));
+}
+
+// `__updateAndNotify` abstracts state update and listener notification
+function __updateStateAndNotify(state, stateSetters, actions, subscribers) {
+    const updated = actions.reduce((s, a) => __updateState(s, stateSetters, a), state);
+    subscribers.forEach(listener => listener(updated));
+    return {...updated};
 }

@@ -23,7 +23,7 @@ test('Initializes shared state with defined properties and null values', () => {
     
     expect(boolean).toBeDefined();
     expect(boolean).toBeNull();
-})
+});
 
 test('Adds a unique property to the state', () => {
     expect(getState().todos).toBeNull();
@@ -32,7 +32,7 @@ test('Adds a unique property to the state', () => {
     expect(getState().todos).toBeTruthy();
     // 
     expect(UniqueStore.getState().todos).toBeNull();
-})
+});
 
 test('Updates a unique property on state', () => {
     expect(getState().boolean).toBeNull();
@@ -44,7 +44,7 @@ test('Updates a unique property on state', () => {
     dispatch(setBool(!getState().boolean));
     expect(getState().boolean).toBe(false);
     expect(UniqueStore.getState().boolean).toBeNull();
-})
+});
 
 test('Notifies a unique listener', () => {
     const listener = jest.fn();
@@ -56,4 +56,5 @@ test('Notifies a unique listener', () => {
     expect(listener).toHaveBeenCalled();
     expect(uniqueListener).not.toHaveBeenCalled();
     unsubscribe();
-})
+    uniqueUnsubscribe();
+});
