@@ -14,7 +14,7 @@ const {
     getState
 } = create({ SET_BOOLEAN, SET_TODOS });
 // Init unique store
-const UniqueStore = create({ SET_BOOLEAN, SET_TODOS }, true);
+const UniqueStore = create({ SET_BOOLEAN, SET_TODOS });
 
 test('Initializes shared state with defined properties and null values', () => {
     const { todos, boolean } = getState();
