@@ -46,25 +46,24 @@ class ApplicationState {
         this.state = {};
         // Listeners go here
         this.subscribers = [];
+        
+        // Methods
+        this.dispatch = (...actions) => {
+            if (actions.length === 0) return;
+            const copyState = { ...this.state };
+            this.state = __updateStateAndNotify(copyState, this.setters, actions, this.subscribers);
+            return null; 
+        }
+    
+        this.getState = () => Object.assign({}, { ...this.state })
+    
+        this.subscribe = (listener) => {
+            return __linkSubscription(listener, this.subscribers)
+        }
+
         // Initialize state with null props
         const initActions = Object.keys(stateSetters).map(makeNullAction);
         this.dispatch(...initActions);
-    }
-
-    dispatch = (...actions) => {
-        if (actions.length === 0) {
-            throw new Error("Invalid dispatch: check action parameters");
-        }
-        const copyState = { ...this.state
-        };
-        this.state = __updateStateAndNotify(this.state, this.setters, actions, this.subscribers);
-    }
-
-    getState = () => Object.assign({}, { ...this.state
-    })
-
-    subscribe = (listener) => {
-        return __linkSubscription(listener, this.subscribers)
     }
 }
 
