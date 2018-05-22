@@ -24,7 +24,7 @@ Sweet merciful heavens; not _another_ State Manager...
 ### 1. Instantiate and export your `state` using the result of `create(setters, isUniqueState)`
 ```typescript
     // File: MyApplicationState.js
-    import create from '@jackcom/raphsducks';
+    import createState from '@jackcom/raphsducks';
 
     // import your state property setters
     import { anotherSetterFunction } from './my/path/to/setters';
@@ -36,15 +36,9 @@ Sweet merciful heavens; not _another_ State Manager...
     // Merge setters into an object
     const mergedSetters = { setTodos, anotherSetterFunction, ...aGroupOfFunctions };
     
-    // Create a shared state for all subscribers
-    const GlobalApplicationState = create(mergedSetters);
-    // Or a unique instance using the optional `isUnique` boolean 
-    const UniqueStateInstance = create({ setTodos, anotherSetterFunction}, true);
-    
     // Export a single `GlobalApplicationState`
-    export default GlobalApplicationState;
-    // or multiple unique instances with composed properties
-    export UniqueStateInstance;
+    // or multiple unique instances with composed setters
+    export default createState(mergedSetters);;
 
 ```
 
@@ -54,7 +48,6 @@ Sweet merciful heavens; not _another_ State Manager...
 
     // Import destructured methods (shared instance only!)
     import { getState, dispatch, subscribe } from './path/to/MyApplicationState.js';
-    // or import UniqueStateInstance from './path/to/MyApplicationState.js';
 
     // Define (or import) your state listener
     const stateListener = (updatedState) => {/* do something with updated state */};
