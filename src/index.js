@@ -94,6 +94,5 @@ function __updateState(state, setters, action) {
 function __updateStateAndNotify(state, stateSetters, actions, subscribers) {
     const updated = actions.reduce((s, a) => __updateState(s, stateSetters, a), state);
     subscribers.forEach(listener => listener(updated));
-    return { ...updated
-    };
+    return { ...updated };
 }
