@@ -21,7 +21,7 @@ Sweet merciful heavens; not _another_ State Manager...
     npm i @jackcom/raphsducks
 
 ## Usage: (or how to interact with hypothetical ducks)
-### 1. Instantiate your `state` using the result of `create(setters, isUniqueState)`
+### 1. Instantiate and export your `state` using the result of `create(setters, isUniqueState)`
 ```typescript
     // File: MyApplicationState.js
     import create from '@jackcom/raphsducks';
@@ -38,13 +38,11 @@ Sweet merciful heavens; not _another_ State Manager...
     
     // Create a shared state for all subscribers
     const GlobalApplicationState = create(mergedSetters);
-    
     // Or a unique instance using the optional `isUnique` boolean 
     const UniqueStateInstance = create({ setTodos, anotherSetterFunction}, true);
     
     // Export a single `GlobalApplicationState`
     export default GlobalApplicationState;
-    
     // or multiple unique instances with composed properties
     export UniqueStateInstance;
 
