@@ -38,7 +38,7 @@ Sweet merciful heavens; not _another_ State Manager...
     
     // Export a single `GlobalApplicationState`
     // or multiple unique instances with composed setters
-    export default createState(mergedSetters);;
+    export default createState(mergedSetters);
 
 ```
 
