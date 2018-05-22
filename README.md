@@ -3,7 +3,7 @@ Sweet merciful heavens; not _another_ State Manager...
 
 ## Table Of Contents
 * [Installation](#installation)
-* [Usage](#usage:-(or-how-to-interact-with-hypothetical-ducks))
+* [Usage](#usage:-or-how-to-interact-with-hypothetical-ducks)
 * [API](#api)
     * [create](#create(setters,-isUniqueState?))
     * [dispatch](#dispatch(...actions))
