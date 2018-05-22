@@ -32,14 +32,19 @@ Sweet merciful heavens; not _another_ State Manager...
 
     // Define or import state property setters
     const setTodos = (todos: ToDo[]) => ({ todos });
+    
     // Merge setters into an object
     const mergedSetters = { setTodos, anotherSetterFunction, ...aGroupOfFunctions };
+    
     // Create a shared state for all subscribers
     const GlobalApplicationState = create(mergedSetters);
+    
     // Or a unique instance using the optional `isUnique` boolean 
     const UniqueStateInstance = create({ setTodos, anotherSetterFunction}, true);
+    
     // Export a single `GlobalApplicationState`
     export default GlobalApplicationState;
+    
     // or multiple unique instances with composed properties
     export UniqueStateInstance;
 
