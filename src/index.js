@@ -57,7 +57,18 @@ class ApplicationState {
     
         this.getState = () => Object.assign({}, { ...this.state })
     
-        this.subscribe = (listener) => __linkSubscription(listener, this.subscribers)
+        this.subscribe = (listener) =>  {
+            // This better be a function. Or Else.
+            if (typeof listener !== "function") {
+                throw new Error(`Invalid listener: '${typeof listener}' is not a function`);
+            }
+        
+            if (this.subscribers.indexOf(listener) > -1) return;
+            // Add listener
+            this.subscribers.push(listener);
+            // return unsubscriber function
+            return () => this.subscribers = this.subscribers.filter(l => !(l === listener));
+        }
 
         // Initialize state with null props
         const initActions = Object.keys(stateSetters).map(makeNullAction);
@@ -65,20 +76,7 @@ class ApplicationState {
     }
 }
 
-// Helpers (to minimize code duplication)
-function __linkSubscription(listener, subscribersList) {
-    // This better be a function. Or Else.
-    if (typeof listener !== "function") {
-        throw new Error(`Invalid listener: '${typeof listener}' is not a function`);
-    }
-
-    if (subscribersList.indexOf(listener) > -1) return;
-    // Add listener
-    subscribersList.push(listener);
-    // return unsubscriber function
-    return () => subscribersList = subscribersList.filter(l => !(l === listener));
-
-}
+// Helpers
 
 // `__merge` updates state one property at a time
 function __updateState(state, setters, action) {
