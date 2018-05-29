@@ -57,9 +57,7 @@ class ApplicationState {
     
         this.getState = () => Object.assign({}, { ...this.state })
     
-        this.subscribe = (listener) => {
-            return __linkSubscription(listener, this.subscribers)
-        }
+        this.subscribe = (listener) => __linkSubscription(listener, this.subscribers)
 
         // Initialize state with null props
         const initActions = Object.keys(stateSetters).map(makeNullAction);
