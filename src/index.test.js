@@ -58,3 +58,20 @@ test('Notifies a unique listener', () => {
     unsubscribe();
     uniqueUnsubscribe();
 });
+
+test('Subscribes a unique listener to state', () => {
+    expect(UniqueStore.subscribers.length).toBe(0);
+    const unsubscribe1 = UniqueStore.subscribe(jest.fn);
+    const unsubscribe2 = UniqueStore.subscribe(jest.fn);
+    expect(UniqueStore.subscribers.length).toBe(1);
+    unsubscribe1();
+});
+
+test('Unsubscribes a unique listener from state', () => {
+    const unsubscribe1 = UniqueStore.subscribe(jest.fn);
+    const unsubscribe2 = UniqueStore.subscribe(poof => null);
+    expect(UniqueStore.subscribers.length).toBe(2);
+    unsubscribe1();
+    expect(UniqueStore.subscribers.length).toBe(1);
+    unsubscribe2();
+}) 
