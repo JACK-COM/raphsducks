@@ -1,4 +1,4 @@
-import createState, { createSetterActions } from './index';
+import { createState, createSetterActions } from './index';
 
 // SETTERS
 const setToDos = todos => ({ todos });

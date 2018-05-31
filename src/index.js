@@ -1,4 +1,7 @@
-export default createState;
+export default {
+    createState,
+    createSetterActions
+};
 
 // Helpers
 const assertIsFunction = object => typeof object === "function";
@@ -12,7 +15,7 @@ const makeNullAction = type => ({ type, payload: null });
  * @param {*} setters 
  * @param {boolean} shouldBeUniqueInstance 
  */
-function createState(setters) {
+export function createState(setters) {
     return new ApplicationState(setters);
 }
 
