@@ -6,37 +6,60 @@ Sweet merciful heavens; not _another_ State Manager...
 * [Usage](#usage)
 * [API](#api)
     * [createState](#createState(setters))
-    * [dispatch](#dispatch(...actions))
-    * [subscribe](#subscribe(listener))
-    * [getState](#getState())
-* [Terminology](#terminology)
+    * [createSetterActions](#createSetterActions(setters))
+    * [StateInstance.dispatch()](#dispatch(...actions))
+    * [StateInstance.subscribe()](#subscribe(listener))
+    * [StateInstance.getState()](#getState())
+* [Terms](#terminology)
     * [Actions](#actions)
     * [Listener Functions](#listener-functions)
     * [Setter Functions](#setter-functions)
+    * [Setter Action Functions](#setter-action-functions)
     * [(Application) State](#application-state)
 * [Explanation](#explanation)
 * [Development](#development)
 
 ## Installation
-    npm i @jackcom/raphsducks
+    npm i --save @jackcom/raphsducks
 
-## Usage
-### 1. Instantiate and export your `state` using the result of `createState(setters)`
+## Quick Usage
+### 1. Export your `state` and `setter actions`
+Check out the [Terminology](#terminology) section for a glossary of terms
 ```typescript
     // File: MyApplicationState.js
-    import createState from '@jackcom/raphsducks';
 
-    // import your state property setters
-    import * as aGroupOfSetterFunctions from './path/to/my/setters';
+    // Import these two functions from the library
+    import { createState, createSetterActions } from '@jackcom/raphsducks';
 
-    // Define or import state property setters
-    const setTodos = (todos: ToDo[]) => ({ todos });
+    /*
+     * 1. This is a "Setter Function". It sets a single property on your state.
+     */
+    function setToDos(todos) {
+        return { todos: todos };
+    }
+
+    /* 
+     * 2. Combine one or more Setters into an object literal:
+     * you can also use the default object from 'import * as Variable',
+     * as long as all items in '*' are setters 
+     * */
+    const mergedSetters = { setToDos };
     
-    // Merge setters into an object
-    const mergedSetters = { setTodos, ...aGroupOfSetterFunctions };
-    
-    // Export one or more unique instances 
-    export default createState(mergedSetters);
+    /*
+     * Use your setters to create a State instance, 
+     */
+    const AppState = createState(mergedSetters);
+    /*
+     * (optional) You can also create an "Actions" dictionary,
+     * which can be used in a `dispatch` to tell the State what to update.
+     */
+    const Actions = createSetterActions(mergedSetters);
+
+    /*
+     * 3. Finally, export objects where needed!
+     */
+    export AppState;
+    export Actions;
 
 ```
 
@@ -44,26 +67,41 @@ Sweet merciful heavens; not _another_ State Manager...
 ```typescript
     // MeanwhileAtAComponentFactory.js
 
-    // Import destructured methods (shared instance only!)
-    import { getState, dispatch, subscribe } from './path/to/MyApplicationState.js';
+    // Import AppState
+    import { AppState, Actions } from './path/to/MyApplicationState.js';
 
-    // Define (or import) your state listener
-    const stateListener = (updatedState) => {/* do something with updated state */};
+    /*
+     * 1. This is a Listener Function. It listens for updates to state. 
+     * In a ReactJS app, it could be a wrapper component method that triggers `setState`
+     */ 
 
-    // Create unsubscribe function by subscribing to state with your listener
-    const unsubscribe = subscribe(stateListener); 
+    /* const, this. */toDosListener = (updatedState) => {
+        if (!updatedState.todos) return; // stop if prop hasn't initialized
+        // call updater e.g. this.setState({ toDos: [...updatedState.todos] });
+    };
 
-    // Get values by calling `getState`
-    const numericProperty = getState().numericProperty;
+    /*
+     * 2. Create an `unsubscribe` function by subscribing to state with your listener
+    */ 
     
-    // Make or batch updates (notifies subscribers when all have been processed)
-    dispatch(
-        { type: "NUMERIC_PROP_SETTER_NAME", payload: numericProperty + 1 },
-        { type: "ANOTHER_PROP_SETTER_NAME", payload: null },
-    );
+    /* const, this.  */unsubscribe = subscribe(stateListener); 
 
-    // Unsubscribe when done
+    // 3. Use it to unsubscribe when done
     unsubscribe();
+
+    /*
+     * That's it! You can also do some other neat things, like
+     * 1. Update one or more values by calling `dispatch`
+    */ 
+    dispatch(
+        Actions.setToDosAction(numericProperty + 1),
+        Actions.setAStatePropertyAction(someProperty)
+    );
+    
+    /*
+     * 2. Get values by calling `getState`
+    */ 
+    AppState.getState().todos; // returns (whatever you dispatched to State.todos)
 ```
 
 
@@ -73,17 +111,24 @@ Sweet merciful heavens; not _another_ State Manager...
     * `setters`: an object with string keys and function values.
 * Returns: an initial [State](#application-state "Application State") with keys reflecting all supplied setters, and initial values of null
 
-### `dispatch(...actions)`
+### `createSetterActions(setters)`
+* Creates an object  using the supplied [setters](#setter-functions). Parameters:
+    * `setters`: an object with string keys and function values.
+* Returns: an object with keys matching each setter name with the word "Action" appended 
+    * (i.e. a setter fn `setUser` yields the action fn `setUserAction`)
+    * Agnostic to source name: the setter fn `setUserAction` yields the action fn `setUserActionAction`)
+
+### `State.dispatch(...actions)`
 * Uses the supplied `actions` to update state. Parameters: 
     * `action`: an object literal with a `type` and `payload` property. See [Actions](#actions "Actions")
 * Returns `void`
 
-### `subscribe(listener)`
+### `State.subscribe(listener)`
 * Listens for state modifications and creates an 'unsubscription' function
 * Call [listener()](#listener-functions) when state changes
 * Returns a function to unsubscribe from state changes
 
-### `getState()` 
+### `State.getState()` 
 * Gets current state
 * Returns (copy of) current state
 
@@ -162,7 +207,11 @@ Redux does a good deal more than _raphsducks_'s humble collection of lines. I wa
 
 
 ## Development
+### Clone and install
     git clone https://github.com/JACK-COM/raphsducks.git && npm install 
 
-Run tests:
-    `npm test`
+### Build
+    npm run build
+
+### Testing (Jest)
+    npm test
