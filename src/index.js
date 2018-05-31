@@ -2,10 +2,7 @@ export default createState;
 
 // Helpers
 const assertIsFunction = object => typeof object === "function";
-const makeNullAction = type => ({
-    type,
-    payload: null
-});
+const makeNullAction = type => ({ type, payload: null });
 
 /**
  * Create an `Application State` object representation. This requires 
@@ -17,6 +14,18 @@ const makeNullAction = type => ({
  */
 function createState(setters) {
     return new ApplicationState(setters);
+}
+
+/**
+ * Helper to create Actions
+ * @param {*} setters 
+ */
+export function createSetterActions(setters) {
+    const Actions = {};
+    for (let setterName in setters) {
+        Actions[`${setterName}Action`] = payload => ({ type: setterName, payload });
+    }
+    return Actions;
 }
 
 /**
@@ -67,7 +76,7 @@ class ApplicationState {
             // Add listener
             this.subscribers.push(listener);
             // return unsubscriber function
-            return () => this.subscribers = this.subscribers.filter(l => !(l === listener));
+            return () => this.subscribers = [...this.subscribers].filter(l => !(l === listener));
         }
 
         // Initialize state with null props
