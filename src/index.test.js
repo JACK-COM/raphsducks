@@ -1,73 +1,79 @@
-import { createState, createSetterActions } from './index';
+import createState from "./index";
 
-// SETTERS
-const setToDos = todos => ({ todos });
-const setBoolean = boolean => ({ boolean })
-const setters = { setBoolean, setToDos };
+const initialState = {
+  todos: [],
+  someBoolean: false,
+};
 // State Instances
-const DefaultState = createState(setters);
-const UniqueState = createState({ setBoolean, setToDos });
-// Action Creators
-const Actions = createSetterActions(setters)
+const DefaultState = createState(initialState);
+const UniqueState = createState(initialState);
 
-test('Initializes shared state with defined properties and null values', () => {
-    const { todos, boolean } = DefaultState.getState();
-    expect(todos).toBeDefined();
-    expect(todos).toBeNull();
-    
-    expect(boolean).toBeDefined();
-    expect(boolean).toBeNull();
-});
+describe("Application State Manager", () => {
+  afterEach(() => {
+    DefaultState.reset();
+    UniqueState.reset();
+  });
 
-test('Create actions for setters', () => {
-    expect(Actions.setBooleanAction).toBeDefined();
-    expect(Actions.setToDosAction).toBeDefined();
-})
+  it("Initializes state with defined properties and default values", () => {
+    const { todos, someBoolean } = DefaultState.getState();
+    expect(todos).toStrictEqual([]);
+    expect(someBoolean).toStrictEqual(false);
+  });
 
-test('Adds a property to unique state instance', () => {
+  it("Adds a property to unique state instance", () => {
+    let uniqueState = UniqueState.getState();
+    expect(uniqueState.todos).toStrictEqual([]);
+    expect(uniqueState.someBoolean).toStrictEqual(false);
+
+    // Modify one state and compare
+    DefaultState.todos([{ text: "Pet the cat", done: false }]);
+
+    // compare
     const todos = DefaultState.getState().todos;
-    expect(todos).toBeNull();
-    // 
-    DefaultState.dispatch(Actions.setToDosAction(false));
-    expect(DefaultState.getState().todos).toBe(false);
-    expect(UniqueState.getState().todos).toBeNull();
-});
+    expect(todos.length).toBe(1);
+    expect(todos[0]).toStrictEqual({ text: "Pet the cat", done: false });
 
-test('Updates a unique property on state', () => {
-    const defaultBool = DefaultState.getState().boolean;
-    expect(defaultBool).toBeNull();
-    // 
-    DefaultState.dispatch(Actions.setBooleanAction(!defaultBool));
-    expect(DefaultState.getState().boolean).toBe(true);
-    expect(UniqueState.getState().boolean).toBeNull();
-    // 
-    DefaultState.dispatch(Actions.setBooleanAction(!DefaultState.getState().boolean));
-    expect(DefaultState.getState().boolean).toBe(false);
-    expect(UniqueState.getState().boolean).toBeNull();
-});
+    uniqueState = UniqueState.getState();
+    expect(uniqueState.todos.length).toBe(0);
+  });
 
-test('Notifies a unique listener', () => {
+  it("Notifies only listeners subscribed to its instance", () => {
     const listener = jest.fn();
     const uniqueListener = jest.fn();
-    const unsubscribe = DefaultState.subscribe(listener);
-    const uniqueUnsubscribe = UniqueState.subscribe(uniqueListener);
-    // 
-    DefaultState.dispatch(Actions.setBooleanAction(!DefaultState.getState().boolean));
-    expect(listener).toHaveBeenCalled();
+    const notEvenListening = jest.fn();
+    const unsub1 = DefaultState.subscribe(listener);
+    const unsub2 = UniqueState.subscribe(uniqueListener);
+    //
+    DefaultState.someBoolean(true);
+    expect(listener).toHaveBeenCalledWith(
+      { ...initialState, someBoolean: true },
+      ["someBoolean"]
+    );
     expect(uniqueListener).not.toHaveBeenCalled();
-    unsubscribe();
-    uniqueUnsubscribe();
-});
+    expect(notEvenListening).not.toHaveBeenCalled();
 
-test('Subscribes a unique listener to state', () => {
+    // cleanup
+    unsub1();
+    unsub2();
+  });
+
+  it("Subscribes a unique listener to state", () => {
+    // Assert no listeners
     expect(UniqueState.subscribers.length).toBe(0);
+    expect(DefaultState.subscribers.length).toBe(0);
+    // Subscribe twice with the same function ref:
     const unsubscribe1 = UniqueState.subscribe(jest.fn);
     const unsubscribe2 = UniqueState.subscribe(jest.fn);
-    expect(UniqueState.subscribers.length).toBe(1);
-    unsubscribe1();
-});
 
-test('Unsubscribes listeners from state', () => {
+    // Assert only one subscriber in relevant statae
+    expect(UniqueState.subscribers.length).toBe(1);
+    expect(DefaultState.subscribers.length).toBe(0);
+
+    // cleanup
+    unsubscribe1();
+  });
+
+  it("Unsubscribes listeners from state instance", () => {
     // Test
     const stub = jest.fn();
     const poof = jest.fn();
@@ -80,18 +86,47 @@ test('Unsubscribes listeners from state', () => {
     expect(UniqueState.subscribers.length).toBe(2);
     expect(DefaultState.subscribers.length).toBe(2);
     // trigger state change
-    UniqueState.dispatch(Actions.setBooleanAction(true));
-    UniqueState.dispatch(Actions.setBooleanAction(false));
+    UniqueState.multiple({
+      someBoolean: true,
+      todos: [{ text: "Pet the cat", done: false }],
+    });
     // assert subscribers were triggered
     expect(stub).toHaveBeenCalled();
     expect(poof).toHaveBeenCalled();
     // unsubscribe the bastards
     unsubscribe1();
     unsubscribe2();
+
     expect(UniqueState.subscribers.length).toBe(0);
     expect(DefaultState.subscribers.length).toBe(2);
     // cleanup
     unsubscribe1A();
     unsubscribe2A();
     expect(DefaultState.subscribers.length).toBe(0);
-}) 
+  });
+
+  it("Resets state instance to inception", () => {
+    // assert initial state
+    expect(UniqueState.getState()).toStrictEqual(initialState);
+    expect(DefaultState.getState()).toStrictEqual(initialState);
+
+    // Updates
+    const updates = {
+      someBoolean: true,
+      todos: [{ text: "Pet the cat", done: false }],
+    };
+
+    // trigger state change
+    UniqueState.multiple(updates);
+    DefaultState.multiple(updates);
+
+    // assert state was changed
+    expect(UniqueState.getState()).toStrictEqual(updates);
+    expect(DefaultState.getState()).toStrictEqual(updates);
+
+    // Reset one state and confirm it changed
+    UniqueState.reset();
+    expect(UniqueState.getState()).toStrictEqual(initialState);
+    expect(DefaultState.getState()).toStrictEqual(updates);
+  });
+});
