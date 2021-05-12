@@ -1,7 +1,8 @@
 # Raph's Ducks v.0.6.x
 
-> **IMPORTANT:** version `0.6.0` simplifies the library and may introduce some breaking changes.
-> If you're looking for the old documentation [look here](README_v-041.md).
+> **IMPORTANT:** version `0.6.0` simplifies the library and introduces breaking changes.
+> If you're looking for the old documentation [look here](README_v-041.md). And, let me say,
+> I am _so sorry_ you ever had to deal with the old library.
 
 
 Sweet merciful heavens; not _another_ State Manager...
