@@ -1,105 +1,123 @@
-export default {
-    createState,
-    createSetterActions
-};
-
-// Helpers
-const assertIsFunction = object => typeof object === "function";
-const makeNullAction = type => ({ type, payload: null });
-
 /**
- * Create an `Application State` object representation. This requires 
- * `setters` (key-value object whose values are functions that write
- * to unique state properties), and an optional boolean to specify whether
- * created store is unique instance or shared as singleton
- * @param {*} setters 
- * @param {boolean} shouldBeUniqueInstance 
- */
-export function createState(setters) {
-    return new ApplicationState(setters);
-}
-
-/**
- * Helper to create Actions
- * @param {*} setters 
- */
-export function createSetterActions(setters) {
-    const Actions = {};
-    for (let setterName in setters) {
-        Actions[`${setterName}Action`] = payload => ({ type: setterName, payload });
-    }
-    return Actions;
-}
-
-/**
- * `ApplicationState` is a class representation of the magic here. 
- * It is instantiable so a user can manage multiple subscriber groups
+ * A representation of an Application state
  */
 class ApplicationState {
+  /**
+   * State subscribers (list of listeners/functions triggered when state changes)
+   */
+  subscribers = [];
 
-    constructor(stateSetters) {
-        //  validate that `stateSetters` contains functions
-        const validKeys = {};
-        for (let key in stateSetters) {
-            // Property name must be unique
-            if (validKeys[key]) {
-                throw new Error(`Conflict: "${key}" has already been registered`);
-            }
-            // Property must be a function
-            if (!assertIsFunction(stateSetters[key])) {
-                throw new Error(`Invalid setter: ${key}'' is not a function`);
-            }
-            // Flag key as valid
-            validKeys[key] = true;
-        }
-        // Application state property setters go here
-        this.setters = stateSetters;
-        // Application state goes here
-        this.state = {};
-        // Listeners go here
-        this.subscribers = [];
-        
-        // Methods
-        this.dispatch = (...actions) => {
-            if (actions.length === 0) return;
-            const copyState = { ...this.state };
-            this.state = __updateStateAndNotify(copyState, this.setters, actions, this.subscribers);
-            return null; 
-        }
-    
-        this.getState = () => Object.assign({}, { ...this.state })
-    
-        this.subscribe = (listener) =>  {
-            // This better be a function. Or Else.
-            if (typeof listener !== "function") {
-                throw new Error(`Invalid listener: '${typeof listener}' is not a function`);
-            }
-        
-            if (this.subscribers.indexOf(listener) > -1) return;
-            // Add listener
-            this.subscribers.push(listener);
-            // return unsubscriber function
-            return () => this.subscribers = [...this.subscribers].filter(l => !(l === listener));
-        }
+  /**
+   * Application State keys and values
+   * @property {object} state Application State
+   */
+  state = {};
 
-        // Initialize state with null props
-        const initActions = Object.keys(stateSetters).map(makeNullAction);
-        this.dispatch(...initActions);
+  _ref = null;
+
+  /**
+   * `ApplicationState` is a class representation of the magic here.
+   * It is instantiable so a user can manage multiple subscriber groups.
+   * @param {object} state Initial app state
+   */
+  constructor(state = {}) {
+    /* State requires at least one key */
+    if (Object.keys(state).length < 1) {
+      const msg =
+        "'ApplicationState' needs a state value with at least one key";
+      throw new Error(msg);
     }
+
+    // Turn every key in the `state` representation into a method on the instance.
+    // This allows entire state updates by calling a single key (e.g.) `state.user({ ... })`;
+    for (let key in state) {
+      this[key] = (value) => {
+        const updated = { ...this.state, [key]: value };
+        return this.updateState(updated, [key]);
+      };
+    }
+
+    // Initialize application state here. These is the key-value
+    // source-of-truth for your application.
+    this.state = { ...state };
+    this._ref = Object.freeze(this.getState());
+    return this;
+  }
+
+  /**
+   * Get [a copy of] the current application state
+   */
+
+  getState = () => Object.assign({}, { ...this.state });
+
+  /**
+   * Update multiple keys in state before notifying subscribers.
+   * @param {object} changes Data source for state updates. This
+   * is an object with one or more state keys that need to be updated.
+   */
+  multiple(changes) {
+    if (typeof changes !== "object") {
+      throw new Error("State updates need to be a key-value object literal");
+    }
+
+    const changeKeys = Object.keys(changes);
+    let updated = { ...this.state };
+
+    changeKeys.forEach((key) => {
+      if (!this[key]) {
+        throw new Error(`There is no "${key}" in this state instance.`);
+      } else {
+        updated = { ...updated, [key]: changes[key] };
+      }
+    });
+
+    return this.updateState(updated, changeKeys);
+  }
+
+  /**
+   * Reset the instance to its initialized state. Preserve subscribers.
+   */
+  reset() {
+    this.multiple({ ...this._ref });
+  }
+
+  /**
+   * Update the instance with changes, then notify subscribers
+   * with a copy
+   */
+  updateState(updated, updatedKeys = []) {
+    this.state = updated;
+    this.subscribers.forEach((listener) => listener(updated, updatedKeys));
+  }
+
+  subscribe = (listener) => {
+    // This better be a function. Or Else.
+    if (typeof listener !== "function") {
+      const msg = `Invalid listener: '${typeof listener}' is not a function`;
+      throw new Error(msg);
+    }
+
+    if (!this.subscribers.includes(listener)) {
+      // Add listener
+      this.subscribers.push(listener);
+
+      // return unsubscriber function
+      return () => this.unsubscribeListener(listener);
+    }
+  };
+
+  unsubscribeListener = (listener) => {
+    const matchListener = (l) => !(l === listener);
+    return (this.subscribers = [...this.subscribers].filter(matchListener));
+  };
 }
 
-// Helpers
-
-// `__merge` updates state one property at a time
-function __updateState(state, setters, action) {
-    const { type, payload } = action;
-    if (!setters[type]) return state;
-    return Object.assign({ ...state }, setters[type](payload));
-}
-
-// `__updateAndNotify` abstracts state update and listener notification
-function __updateStateAndNotify(state, stateSetters, actions, subscribers) {
-    const updated = actions.reduce((s, a) => __updateState(s, stateSetters, a), state);
-    subscribers.forEach(listener => listener(updated));
-    return { ...updated };
+/**
+ * Create an `Application State` object representation. This requires
+ * a key-value state object, whose keys will be attached to setter functions
+ * on the new `Application State` instance
+ * @param {object} state State representation
+ */
+export default function createState(state) {
+  return new ApplicationState(state);
 }

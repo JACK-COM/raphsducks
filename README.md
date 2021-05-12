@@ -1,139 +1,180 @@
-# Raph's Ducks
+# Raph's Ducks v.0.6.x
+
+> **IMPORTANT:** version `0.6.0` simplifies the library and introduces breaking changes.
+> If you're looking for the old documentation [look here](README_v-041.md). And, let me say,
+> I am _so sorry_ you ever had to deal with the old library.
+
+
 Sweet merciful heavens; not _another_ State Manager...
+
+But you would be right. And if it isn't the simplest state-manager you have ever encountered,
+I'll ... I'll eat my very javascript. 
 
 ## Table Of Contents
 * [Installation](#installation)
 * [Usage](#usage)
-* [API](#api)
-    * [createState](#createState(setters))
-    * [dispatch](#dispatch(...actions))
-    * [subscribe](#subscribe(listener))
-    * [getState](#getState())
+* [Reference/API](#reference)
 * [Terminology](#terminology)
-    * [Actions](#actions)
     * [Listener Functions](#listener-functions)
     * [Setter Functions](#setter-functions)
-    * [(Application) State](#application-state)
-* [Explanation](#explanation)
+    * [Application State](#application-state)
+* [FAQs](#ifaqs-infrequently-asked-questions)
 * [Development](#development)
 
 ## Installation
     npm i @jackcom/raphsducks
 
-## Usage
-### 1. Instantiate and export your `state` using the result of `createState(setters)`
+## Usage - Core Concepts
+
+Usage is as easy as (1, 2)!
+### 1. Define and instantiate your state in one smooth move
+The library exports a single function, `createState`. Under the hood, this returns an
+`ApplicationState` class which
+    * Turns every state property into a **setter function**, and
+    * Provides additional functions for reading or subscribing to that state
+
 ```typescript
     // File: MyApplicationState.js
+
     import createState from '@jackcom/raphsducks';
 
-    // import your state property setters
-    import * as aGroupOfSetterFunctions from './path/to/my/setters';
+    // State definition hapens here. The object-literal you pass in is your state.
+    const myAppState = createState({
+        todos: [],
+        someOtherValue: false,
+    });
 
-    // Define or import state property setters
-    const setTodos = (todos: ToDo[]) => ({ todos });
-    
-    // Merge setters into an object
-    const mergedSetters = { setTodos, ...aGroupOfSetterFunctions };
-    
-    // Export one or more unique instances 
-    export default createState(mergedSetters);
-
+    // And that's it; now you have an object with a method "todos", which you can subscribe to.
+    export default myAppState;
 ```
 
 ### 2. Use your `state` in a file (or application component, or, you know, wherever)
 ```typescript
     // MeanwhileAtAComponentFactory.js
 
-    // Import destructured methods (shared instance only!)
-    import { getState, dispatch, subscribe } from './path/to/MyApplicationState.js';
+    import myAppState from './path/to/MyApplicationState.js';
 
-    // Define (or import) your state listener
-    const stateListener = (updatedState) => {/* do something with updated state */};
+    // Every key in your 'createState' config becomes a method, so you can update one:
+    myAppState.todos([{ text: "Pet the cat", done: false }]);
 
-    // Create unsubscribe function by subscribing to state with your listener
-    const unsubscribe = subscribe(stateListener); 
+    // or multiple, if you passed them into "createState"
+    myAppState.multiple({
+        todos: [{ text: "Pet the cat", done: false }],
+        someOtherValue: true
+    });
 
-    // Get values by calling `getState`
-    const numericProperty = getState().numericProperty;
+    // And you can read the state using a vaguely familiar api: 
+    // (NOTE: typescript is NOT required, and is only used for illustrative purposes)
+    const { todos: Todos[], someOtherValue: Boolean } = myAppState.getState();
+
+    console.log(todos, someOtherValue); // [{ text: "Pet the cat", done: false }], true
+```
+
+> **NOTE:**: Don't use uninstantiated keys at runtime, or you will get an error! Given our example
+> above, the following will fail since it wasn't in `createState`:
+> ```javascript
+> myAppState.multiple({ justAddedThisOne: true })
+> ```
+
+## Usage - Other Concepts
+
+You don't *need* to subscribe to your `state` instance in order to either read from or write to it. 
+However, if you want to be automatically notified when the state changes, you can subscribe to the 
+instance:
+```typescript
+    // Subscription returns an "unsubscribe" function, which can be used in a component lifecycle
+    const unsubscribe = myAppState.subscribe((appState) => {
+        // appState.todos === [{ text: "Pet the cat", done: false }]
+        // appState.someOtherValue === false
+    }); 
+
+    // ... more of your zen-inducing code ensues ...
+
+    // Eventually, when done: unsubscribe this component/subscriber from myAppState updates.
+    unsubscribe(); 
     
-    // Make or batch updates (notifies subscribers when all have been processed)
-    dispatch(
-        { type: "NUMERIC_PROP_SETTER_NAME", payload: numericProperty + 1 },
-        { type: "ANOTHER_PROP_SETTER_NAME", payload: null },
-    );
+    // If you are REALLY done and want to go one step further, you can reset. It should be used 
+    // strategically on an application level. 
+    myAppState.reset();
 
-    // Unsubscribe when done
-    unsubscribe();
+    console.log(myAppState.getState()); // { todos: [], someOtherValue: false }
 ```
 
 
-## API
-### `createState(setters)`
-* Creates a new `state`  using the supplied [setters](#setter-functions). Parameters:
-    * `setters`: an object with string keys and function values.
-* Returns: an initial [State](#application-state "Application State") with keys reflecting all supplied setters, and initial values of null
+## Reference
+### **createState**
+* Default Library export: Creates a new `state`  using the supplied initial state. Parameters:
+  * **Args**: An object-literal representing every key and initial/default value for your global state.
+  * **API**:
+    ```typescript
+    createState(state: { [x:string]: any }): ApplicationState
+    ```
+  * **Returns**: an initial [State](#application-state "Application State") with keys reflecting all keys in the initial state.
 
-### `dispatch(...actions)`
-* Uses the supplied `actions` to update state. Parameters: 
-    * `action`: an object literal with a `type` and `payload` property. See [Actions](#actions "Actions")
-* Returns `void`
 
-### `subscribe(listener)`
-* Listens for state modifications and creates an 'unsubscription' function
-* Call [listener()](#listener-functions) when state changes
-* Returns a function to unsubscribe from state changes
+### **ApplicationState** (Class)
 
-### `getState()` 
-* Gets current state
-* Returns (copy of) current state
+* State instance returned from `createState({ ... })`. `ApplicationState` has the following methods:
+* `subscribe(listener)`
+  * Subscribes the provided [`listener`](#listener-functions) when state changes
+  * **Returns**: a function to unsubscribe from state changes
+
+* `getState()` 
+  * **Returns**: (copy of) current state
+
+* `reset()` 
+  * Resets the state to whatever was passed into `createState()`
 
 
 ## Terminology
-### `Actions`
-An `Action` is an object literal describing a single operation to perform on your `state`. Required properties:
-    * `type`: a string whose value is the name of the [setter](#setter-functions "Setter Functions") you want to call
-    * `payload`: any value(s) to be returned by the called `setter`
 
 ### `Listener Functions`
-A `listener` is a function that reacts to state updates. Required parameters: 
-    * `state`: the updated `state` object. 
+A `listener` is a user-defined function that reacts to state updates. It takes two arguments: 
+* `state: { [x:string]: any }`: the updated `state` object. 
+* `updatedItemKeys: string[]`: a list of keys (`state` object properties) that were just updated. 
     
 ```typescript
-    // A basic Listener runs comparisons against internals: 
-    const myListener = (updatedState) => {
-        if (updatedState.someProperty === myPreviousStateCopy.someProperty) return; 
-        // else, `state.someProperty` changed: do something with it! Be somebody!
+    // A basic Listener receives the updated application state
+    function myStateListener(updatedState: object, updatedItemKeys: string[]) => {
+        // You can compare if your property changed
+        if (updatedState.someProperty === myLocalStateCopy.someProperty) return; 
+
+        // or use the provided keys for convenience
+        if (!updatedItemKeys.includes("someProperty")) return;
+
+        else ...
+        // `state.someProperty` changed: do something with it! Be somebody!
     };
 ```
 
-### `Setter Functions`
-A `setter` is a "pure" JS function (no side-effects) that sets one or more properties on a state object. 
-You write `setter` functions either as properties of a global object-literal export, or 
-as individual function exports, which might be easier for testing.
 
-```typescript
-// A basic setter example
-export function MY_SETTER(todos) {
-    return { "todos": todos }; // or ES6: return ({ todos })
-}
-```
-In this example, `todos` will be used to create and write to the state property `State.todos`. 
-
-### `Application State`
-Your `Application State` is an object representing your application at a point in time.
-* Can be interacted with via {getState, dispatch, subscribe} methods
-* You can override an initial state value of null by supplying default arguments (not recommended!)
+### **Setter Functions**
+A *setter function* is just a function that *sets* a property on the state. In `v.0.5.x` and below,
+library users had to define these, along with `Actions` and all sorts of horrid things. Starting 
+from `v.0.6.x`, your `ApplicationState` instance will generate setter functions for you, based on
+what you pass into `createState`. 
 
 
-## Explanation 
+### **Application State**
+Your `Application State` is a snapshot of your application at a point in time. The `ApplicationState` 
+class (defined in and used by this library) is an abstraction of the concept. 
+
+## iFAQs (Infrequently Asked Questions) 
 ### What is (are?) `Raph's Ducks`?
-    A(nother) redux-inspired publish/subscribe state-management system. 
-* Defines a unique or shared State object, to which any component can subscribe for changes
-* Uses a familiar `dispatch`, `getState`, and `subscribe` API for notifying of update, checking current state, and, listening to state updates, respectively
-* Includes a `create` method for instantiating the state
+    A publish/subscribe state-management system: originally inspired by Redux, but now hyper-simplified.
+
+### How is it similar to Redux?
+* Defines a unique, shareable Application State, which can be subscribed to for updates
+* Includes a `createState` method for instantiating the state
+* Uses a familiar `getState`, and `subscribe` API for getting a copy of current state, and listening to state updates, respectively.
 
 ### How is it different from Redux?
-_Raphsducks_ is a very lightweight library that allows you to instantiate a state and subscribe to/unsubscribe from it. After a dispatch, it passes a copy of the updated state to subscribers. I realize this doesn't answer the question, so I'll say it's probably smaller and easier to reason about.
+* No `Actions`.
+* No `dispatchers`
+
+_Raphsducks_ is a very lightweight library that mainly allows you to instantiate a global state and 
+subscribe to/unsubscribe from it. It doesn't do any additional work to make that state global: it
+just gives you a state to do what you will. I *could* say it's smaller and easier to reason about -- but that would be conjecture.
 
 
 ### Why did you choose that name?
@@ -142,26 +183,25 @@ _Raphsducks_ is a very lightweight library that allows you to instantiate a stat
 
 ### Does this need React or Redux?
     Nope
-Although it was inspired by using React, and learning patterns from Redux, this is _hilariously_ unrelated to both. It was directly inspired by [Dan Abramov's egghead.io tutorial](https://egghead.io/courses/getting-started-with-redux "Getting started with Redux"). 
+It was inspired when I was learning React, and learning patterns from Redux. The first implementation came directly from [Dan Abramov's egghead.io tutorial](https://egghead.io/courses/getting-started-with-redux "Getting started with Redux"). Dan Abramov, if you're not immediately familiar, created the *Redux* library. 
 
-### Can I use this in React?
-    Yes, using the HOC/provider pattern:
-1. Create a `WrapperComponent` to handle subscribing and unsubscribing from the `State`
-2. `WrapperComponent` uses a `mapPropsToState` function to copy the parts of `State.getState()` that it cares about to its internal state
-3. On update, `WrapperComponent` checks if the "interesting" parts of `State.getState()` have changed
-4. If so, `WrapperComponent` updates and supplies props to the wrapped component
-5. Export dependants as `WrapperComponent(MyDependantComponent, mapPropsToState)`
+### Can I use this in [React, Vue, Svelte ... ]?
+    Yes.
+
+This is, ultimately, a plain JS object. You can use it anywhere you can use JS and need a global/application state.
 
 ### Why not just use redux?
 * ~~Because _clearly_, Javascript needs MOAR solutions for solved problems.~~
 * Not everyone needs redux. Not everyone needs _raphsducks_, either
 * In fact, _not everyone needs state_. 
-* ...You're right. Why _not_ just use redux?
 
 Redux does a good deal more than _raphsducks_'s humble collection of lines. I wanted something lightweight with the pub/sub API, which would allow me to quickly extend an application's state without getting into fist-fights with multiple application files, so I built this. As with many modern JS offerings, I acknowledge that it _could be_ the result of thinking about a problem wrong: use at your discretion.
 
 
 ## Development
+
+All dependencies are defined in the `package.json` file: mainly Babel and Webpack for bundling.
+
     git clone https://github.com/JACK-COM/raphsducks.git && npm install 
 
 Run tests:
