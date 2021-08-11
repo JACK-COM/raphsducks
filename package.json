@@ -1,11 +1,11 @@
 {
   "name": "@jackcom/raphsducks",
-  "version": "0.7.0",
+  "version": "1.0.0-rc1",
   "description": "A lightweight pubsub (publish-subscribe) state manager.",
   "main": "lib/raphsducks.js",
   "scripts": {
     "test": "jest --watchAll",
-    "build": "node compile.js",
+    "build": "npx webpack build",
     "prepublish": "npm-auto-version",
     "postpublish": "git push origin --tags"
   },
