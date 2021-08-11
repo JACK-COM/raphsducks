@@ -1,5 +1,6 @@
 /**
- * A representation of an Application state
+ * A representation of an Application state. Taken from a public gist:
+ * see [here](https://gist.github.com/MrJackdaw/ceca2b05743932513a6320f3f9eeea36)
  */
 class ApplicationState {
   /**
@@ -9,16 +10,20 @@ class ApplicationState {
 
   /**
    * Application State keys and values
-   * @property {object} state Application State
    */
   state = {};
 
+  /**
+   * @private 
+   * @property {ConstructorParameters} ref Copy of original state args
+   */
   _ref = null;
 
   /**
    * `ApplicationState` is a class representation of the magic here.
-   * It is instantiable so a user can manage multiple subscriber groups.
-   * @param {object} state Initial app state
+   * It is instantiable so a user can manage multiple subscriber groups. Every `state` key becomes
+   * a method from updating that state. (e.g. `state.users` = ApplicationState.users( ... ))
+   * @param {{[x:string]: string | number | object }} state Initial State
    */
   constructor(state = {}) {
     /* State requires at least one key */
@@ -33,7 +38,7 @@ class ApplicationState {
     for (let key in state) {
       this[key] = (value) => {
         const updated = { ...this.state, [key]: value };
-        return this.updateState(updated, [key]);
+        return updateState.apply(this, [updated, [key]]);
       };
     }
 
@@ -41,13 +46,11 @@ class ApplicationState {
     // source-of-truth for your application.
     this.state = { ...state };
     this._ref = Object.freeze(this.getState());
+
     return this;
   }
 
-  /**
-   * Get [a copy of] the current application state
-   */
-
+  /** Get [a copy of] the current application state */
   getState = () => Object.assign({}, { ...this.state });
 
   /**
@@ -71,25 +74,15 @@ class ApplicationState {
       }
     });
 
-    return this.updateState(updated, changeKeys);
+    return updateState.apply(this, [updated, changeKeys]);
   }
 
-  /**
-   * Reset the instance to its initialized state. Preserve subscribers.
-   */
+  /** Reset the instance to its initialized state. Preserve subscribers. */
   reset() {
     this.multiple({ ...this._ref });
   }
 
-  /**
-   * Update the instance with changes, then notify subscribers
-   * with a copy
-   */
-  updateState(updated, updatedKeys = []) {
-    this.state = updated;
-    this.subscribers.forEach((listener) => listener(updated, updatedKeys));
-  }
-
+  /** Subscribe to the state instance. Returns an `unsubscribe` function */
   subscribe = (listener) => {
     // This better be a function. Or Else.
     if (typeof listener !== "function") {
@@ -113,10 +106,21 @@ class ApplicationState {
 }
 
 /**
+ * @private
+ * Update the instance with changes, then notify subscribers
+ * with a copy
+ */
+function updateState(updated, updatedKeys = []) {
+  this.state = updated;
+  this.subscribers.forEach((listener) => listener(updated, updatedKeys));
+}
+
+/**
  * Create an `Application State` object representation. This requires
  * a key-value state object, whose keys will be attached to setter functions
  * on the new `Application State` instance
- * @param {object} state State representation
+ * @param {[x:string]: number | string | object} state State representation
+ * @returns {ApplicationState & {[Properties in keyof Parameters]: (data: any) => void }} App State Instance
  */
 export default function createState(state) {
   return new ApplicationState(state);

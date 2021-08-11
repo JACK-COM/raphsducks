@@ -1,6 +1,6 @@
 {
   "name": "@jackcom/raphsducks",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "A lightweight pubsub (publish-subscribe) state manager.",
   "main": "lib/raphsducks.js",
   "scripts": {
@@ -38,7 +38,8 @@
     "babel-loader": "^8.2.2",
     "babel-preset-stage-2": "^6.24.1",
     "jest": "^26.6.3",
-    "webpack": "^5.37.0",
-    "webpack-cli": "^4.7.0"
+    "npm-auto-version": "^1.0.0",
+    "webpack": "^5.50.0",
+    "webpack-cli": "^4.7.2"
   }
 }

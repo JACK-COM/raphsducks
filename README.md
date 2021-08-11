@@ -22,7 +22,7 @@ I'll ... I'll eat my very javascript.
 * [Development](#development)
 
 ## Installation
-    npm i @jackcom/raphsducks
+    npm i -s @jackcom/raphsducks
 
 ## Usage - Core Concepts
 
@@ -44,7 +44,8 @@ The library exports a single function, `createState`. Under the hood, this retur
         someOtherValue: false,
     });
 
-    // And that's it; now you have an object with a method "todos", which you can subscribe to.
+    // And that's it; now you have an instance with methods "todos" and 
+    // "someOtherValue", which you can subscribe to.
     export default myAppState;
 ```
 
