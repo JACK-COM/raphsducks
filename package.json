@@ -1,0 +1,35 @@
+{
+  "name": "@jackcom/raphsducks-ts",
+  "version": "1.1.0",
+  "description": "",
+  "main": "index.js",
+  "keywords": [
+    "state-manager",
+    "typescript"
+  ],
+  "author": "JACKCOM",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/JACK-COM/raphsducks.git"
+  },
+  "license": "WTFPL",
+  "scripts": {
+    "clean": "rm dist/bundle.js",
+    "build": "npx webpack --mode development",
+    "test": "jest --watchAll"
+  },
+  "devDependencies": {
+    "@babel/preset-env": "^7.15.0",
+    "@babel/preset-typescript": "^7.15.0",
+    "@types/jest": "^27.0.1",
+    "clean-webpack-plugin": "^4.0.0-alpha.0",
+    "copy-webpack-plugin": "^9.0.1",
+    "jest": "^27.0.6",
+    "npm-auto-version": "^1.0.0",
+    "prettier": "^2.3.2",
+    "ts-loader": "^9.2.5",
+    "typescript": "^4.4.2",
+    "webpack": "^5.51.1",
+    "webpack-cli": "^4.8.0"
+  }
+}
