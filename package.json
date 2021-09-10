@@ -1,11 +1,14 @@
 {
   "name": "@jackcom/raphsducks-ts",
   "version": "1.1.0",
-  "description": "",
-  "main": "index.js",
+  "description": "A lightweight pubsub (publish-subscribe) state manager.",
+  "main": "lib/bundle.js",
   "keywords": [
-    "state-manager",
-    "typescript"
+    "state",
+    "manager",
+    "global",
+    "publish",
+    "subscribe"
   ],
   "author": "JACKCOM",
   "repository": {
