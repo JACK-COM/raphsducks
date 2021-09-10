@@ -4,7 +4,7 @@
 > * Version `1.x.x` simplifies the library and introduces breaking changes.
 > If you're looking for the old documentation [look here](/README-v-0XX.md). And, let me say,
 > I am _so sorry_ you ever had to deal with the old library.
-> * Version `1.1.x` adds typescript support
+> * Version `1.1.x` adds typescript support, and a new `subscribeOnce` function (see below)
 
 ## What is it?
 * A simple Javascript state manager. 
@@ -70,14 +70,22 @@ Usage is as easy as (1)!
     // 2. Check current state
     const currentState = store.getState();
 
-    // 3. Subscribe for updates: optionally use 'updatedKeys' to restrict local updates
-    //    Calling 'instance.subscribe( ... )' returns an 'unsubscriber' function
+    // 3. a) Subscribe for updates: optionally use 'updatedKeys' to restrict local updates
+    //       Calling 'instance.subscribe( ... )' returns an 'unsubscriber' function
     const localUnsubscribe = store.subscribe((updatedState, updatedKeys: string[]) => {
         let localTodos = [];
 
         if (updatedKeys.includes("todos")) {
             localTodos = [...updatedState.todos];
         }
+    })
+
+    // 3. b) NEW: Subscribe ONCE for updates. When the target 'key' is updated, listener
+    //       will be automatically unsubscribed
+    let localTodos = [];
+    // This update will fire once, when next 'todos' is updated.
+    store.subscribeOnce(({ todos } /* , updatedKeys: string[] */) => {
+        localTodos = [...todos];
     })
 
     // 4. stop listening to updates
@@ -124,13 +132,16 @@ instance. This is useful when working in a front-end framework. See examples bel
         // Read current state
         getState(): void 
 
-        // Watch state instance: returns an "unsubscribe" function.
+        // Listen to state instance updates: returns an "unsubscribe" function.
         subscribe(listener: (updates: T, updatedKeys: string[]): any | void): ():void
 
-        // updates one or more keys at once on the instance
+        // Listen to instance updates until 'key' is updated, then auto-unsubscribe
+        subscribeOnce(listener: (updates: T, updatedKeys: string[]): any | void, key: string):void
+
+        // Update one or more keys at once on the instance
         multiple(updates: object) => void 
 
-        // This represents any key you pass into `createState`  
+        // This represents any key you pass into `createState`. The function will be created for you
         [K: string]: (value?: any) => void 
         
     }   

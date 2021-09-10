@@ -73,6 +73,37 @@ describe("Application State Manager", () => {
     unsubscribe1!();
   });
 
+  it("Subscribes a unique listener ONCE to state, then unsubscribes", () => {
+    // Assert no listeners
+    expect(UniqueState.subscribers.length).toBe(0);
+    expect(DefaultState.subscribers.length).toBe(0);
+
+    const spy = jest.fn(({ todos }) => {
+      console.log({ todos });
+    });
+    // Subscribe twice with the same function ref:
+    UniqueState.subscribeOnce(spy, "someBoolean");
+    expect(UniqueState.subscribers.length).toBe(1);
+
+    // Update a different key
+    UniqueState.todos([123]);
+    expect(spy).not.toHaveBeenCalled();
+
+    // Update target key
+    UniqueState.someBoolean(true);
+    UniqueState.someBoolean(false);
+
+    // assert spy has been unsubscribed
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(UniqueState.subscribers.length).toBe(0);
+
+    // Assert only one subscriber in relevant statae
+    // expect(DefaultState.subscribers.length).toBe(0);
+
+    // // cleanup
+    // unsubscribe1!();
+  });
+
   it("Unsubscribes listeners from state instance", () => {
     // Test
     const stub = jest.fn();

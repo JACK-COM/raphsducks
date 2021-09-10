@@ -93,6 +93,17 @@ class _ApplicationStore {
     return noOp;
   }
 
+  /** Subscribe until a specified `key` is updated, then unsubscribe */
+  subscribeOnce(listener: Listener, key: string) {
+    const unsubscribe = this.subscribe((state, updated) => {
+      // Trigger the listener if the key was updated, and unsubscribe immediately
+      if (updated.includes(key)) {
+        listener(state, updated);
+        unsubscribe();
+      }
+    })
+  }
+
   private unsubscribeListener(listener: Listener) {
     const matchListener = (l: Listener) => !(l === listener);
     this.subscribers = [...this.subscribers].filter(matchListener);

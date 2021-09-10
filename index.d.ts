@@ -16,6 +16,9 @@ declare function createState<T>(s: T): {
 
   /** Subscribe to the state instance. Returns an `unsubscribe` function */
   subscribe(listener: Listener): () => void;
+
+  /** Subscribe to the state instance. Returns an `unsubscribe` function */
+  subscribeOnce(listener: Listener, key: string): void;
 } & { [k in keyof T]: (u: any) => void };
 
 export = createState;

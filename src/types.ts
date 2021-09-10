@@ -18,6 +18,9 @@ interface Store {
 
   /** Subscribe to the state instance. Returns an `unsubscribe` function */
   subscribe(listener: Listener): () => void;
+
+  /** Subscribe to the state instance. Returns an `unsubscribe` function */
+  subscribeOnce(listener: Listener, key: string): void;
 }
 
 type StoreUpdaterFn = {
