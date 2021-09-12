@@ -34,6 +34,9 @@ When called, this returns an `State` instance, which
   * Provides additional functions for reading or subscribing to that state
   
 In the example above, both `todos` and `someOtherValue` will become functions on `store`. See [usage below](#usage---core-concepts)
+
+> <b style="color:#C03">Important!</b> To prevent type assertion errors, make sure you initialize your keys with a corresponding type. (i.e. a key initialized with `null` will *always* expect `null` as an update value)
+
 ## What does it NOT do?
 This is a purely in-memory state manager: it does NOT 
 * Serialize data and/or interact with other storage mechanisms (e.g. `localStorage` or `sessionStorage`). 

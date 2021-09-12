@@ -3,6 +3,7 @@ import createState from "./index";
 const initialState = {
   todos: [],
   someBoolean: false,
+  someString: ""
 };
 // State Instances
 const DefaultState = createState(initialState);
@@ -36,6 +37,25 @@ describe("Application State Manager", () => {
     uniqueState = UniqueState.getState();
     expect(uniqueState.todos.length).toBe(0);
   });
+
+  it("Accepts only initialized properties", () => {
+    try {
+      DefaultState.invalid(true)
+    } catch (e) {
+      expect(e).toBeTruthy()
+    }
+  });
+
+  it("Updates multiple properties before notifying subscribers once", () => {
+    const listener = jest.fn();
+    const unsubscribe = DefaultState.subscribe(listener)
+    DefaultState.multiple({
+      someBoolean: true,
+      todos: [1,2,4]
+    });
+    expect(listener).toHaveBeenCalledTimes(1);
+    unsubscribe();
+  })
 
   it("Notifies only listeners subscribed to its instance", () => {
     const listener = jest.fn();
@@ -145,6 +165,7 @@ describe("Application State Manager", () => {
     const updates = {
       someBoolean: true,
       todos: [{ text: "Pet the cat", done: false }],
+      someString: "Hello"
     };
 
     // trigger state change

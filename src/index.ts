@@ -50,7 +50,7 @@ class _ApplicationStore {
    * @param {ApplicationState} changes Data source for state updates. This
    * is an object with one or more state keys that need to be updated.
    */
-  multiple(changes: ApplicationState) {
+  multiple(changes: Partial<ApplicationState>) {
     if (typeof changes !== "object") {
       throw new Error("State updates need to be a key-value object literal");
     }
