@@ -47,7 +47,7 @@ class _ApplicationStore {
 
   /**
    * Update multiple keys in state before notifying subscribers.
-   * @param {ApplicationState} changes Data source for state updates. This
+   * @param {Partial<ApplicationState>} changes Data source for state updates. This
    * is an object with one or more state keys that need to be updated.
    */
   multiple(changes: Partial<ApplicationState>) {
@@ -70,9 +70,10 @@ class _ApplicationStore {
   }
 
   /** Reset the instance to its initialized state. Preserve subscribers. */
-  reset() {
-    const initialState = { ...this.ref };
-    this.multiple({ ...initialState });
+  reset(clearSubscribers = false) {
+    if (clearSubscribers) this.subscribers = [];
+    // reset state to initial values
+    this.multiple({ ...this.ref });
   }
 
   /** Subscribe to the state instance. Returns an `unsubscribe` function */
@@ -93,15 +94,28 @@ class _ApplicationStore {
     return noOp;
   }
 
-  /** Subscribe until a specified `key` is updated, then unsubscribe */
-  subscribeOnce(listener: Listener, key: string) {
+  /**
+   * Subscribe until a specified `key` is updated, then unsubscribe. Optionally takes
+   * a value-checker in case you want to subscribe until a particular value is received
+   */
+  subscribeOnce(
+    listener: Listener,
+    key: string,
+    valueCheck?: (a: any) => boolean
+  ): void {
     const unsubscribe = this.subscribe((state, updated) => {
-      // Trigger the listener if the key was updated, and unsubscribe immediately
-      if (updated.includes(key)) {
+      const exit = () => {
         listener(state, updated);
         unsubscribe();
-      }
-    })
+      };
+      // Exit if the key hasn't been updated
+      if (!updated.includes(key)) return;
+
+      // If there is no value-checker, trigger the listener and unsubscribe.
+      if (!valueCheck) return exit();
+      // Trigger the listener if the key was updated, and unsubscribe immediately
+      else if (valueCheck(state[key])) return exit();
+    });
   }
 
   private unsubscribeListener(listener: Listener) {
