@@ -17,9 +17,11 @@
   },
   "license": "WTFPL",
   "scripts": {
-    "clean": "rm dist/bundle.js",
-    "build": "npx webpack --mode development",
-    "test": "jest --watchAll"
+    "clean": "rm lib/bundle.js",
+    "build": "npm run clean && npx webpack --mode development",
+    "test": "jest --watchAll",
+    "prepublish": "npm-auto-version",
+    "postpublish": "git push origin --tags"
   },
   "devDependencies": {
     "@babel/preset-env": "^7.15.0",

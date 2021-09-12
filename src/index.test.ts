@@ -1,8 +1,9 @@
 import createState from "./index";
 
 const initialState = {
-  todos: [],
+  todos: ([] as any[]),
   someBoolean: false,
+  someString: "",
 };
 // State Instances
 const DefaultState = createState(initialState);
@@ -35,6 +36,25 @@ describe("Application State Manager", () => {
 
     uniqueState = UniqueState.getState();
     expect(uniqueState.todos.length).toBe(0);
+  });
+
+  it("Accepts only initialized properties", () => {
+    try {
+      DefaultState.invalid(true);
+    } catch (e) {
+      expect(e).toBeTruthy();
+    }
+  });
+
+  it("Updates multiple properties before notifying subscribers once", () => {
+    const listener = jest.fn();
+    const unsubscribe = DefaultState.subscribe(listener);
+    DefaultState.multiple({
+      someBoolean: true,
+      todos: [1, 2, 4],
+    });
+    expect(listener).toHaveBeenCalledTimes(1);
+    unsubscribe();
   });
 
   it("Notifies only listeners subscribed to its instance", () => {
@@ -96,12 +116,36 @@ describe("Application State Manager", () => {
     // assert spy has been unsubscribed
     expect(spy).toHaveBeenCalledTimes(1);
     expect(UniqueState.subscribers.length).toBe(0);
+  });
 
-    // Assert only one subscriber in relevant statae
-    // expect(DefaultState.subscribers.length).toBe(0);
+  it("Subscribes a listener ONCE until a value is received, then unsubscribes", () => {
+    // Assert no listeners
+    expect(UniqueState.subscribers.length).toBe(0);
+    expect(DefaultState.subscribers.length).toBe(0);
 
-    // // cleanup
-    // unsubscribe1!();
+    const spy = jest.fn(({ someBoolean }) => {
+      console.log({ someBoolean });
+    });
+
+    // Subscribe twice with the same function ref:
+    UniqueState.subscribeOnce(spy, "someBoolean", (a: boolean) => a === false);
+    expect(UniqueState.subscribers.length).toBe(1);
+    expect(DefaultState.subscribers.length).toBe(0);
+
+    // Update a different key
+    UniqueState.todos([123]);
+    expect(spy).not.toHaveBeenCalled();
+
+    // Update target key
+    UniqueState.someBoolean(true);
+    UniqueState.multiple({ someBoolean: null, todos: [] });
+    expect(spy).not.toHaveBeenCalled();
+
+    UniqueState.someBoolean(false);
+
+    // assert spy has been unsubscribed
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(UniqueState.subscribers.length).toBe(0);
   });
 
   it("Unsubscribes listeners from state instance", () => {
@@ -136,7 +180,7 @@ describe("Application State Manager", () => {
     expect(DefaultState.subscribers.length).toBe(0);
   });
 
-  it("Resets state instance to inception", () => {
+  it("Resets state instance to inception while preserving subscribers", () => {
     // assert initial state
     expect(UniqueState.getState()).toStrictEqual(initialState);
     expect(DefaultState.getState()).toStrictEqual(initialState);
@@ -145,6 +189,7 @@ describe("Application State Manager", () => {
     const updates = {
       someBoolean: true,
       todos: [{ text: "Pet the cat", done: false }],
+      someString: "Hello",
     };
 
     // trigger state change
@@ -159,5 +204,31 @@ describe("Application State Manager", () => {
     UniqueState.reset();
     expect(UniqueState.getState()).toStrictEqual(initialState);
     expect(DefaultState.getState()).toStrictEqual(updates);
+  });
+
+  it("Resets state instance to inception and removes subscribers", () => {
+    // assert initial state
+    expect(UniqueState.getState()).toStrictEqual(initialState);
+
+    // Updates
+    const updates = {
+      someBoolean: true,
+      todos: [{ text: "Pet the cat", done: false }],
+      someString: "Hello",
+    };
+
+    const spyScriber = jest.fn()
+    const unsubscribe = UniqueState.subscribe(spyScriber);
+
+    // trigger state change
+    UniqueState.multiple(updates);
+    UniqueState.reset(true);
+    expect(spyScriber).toHaveBeenCalledTimes(1);
+
+
+    expect(UniqueState.getState()).toStrictEqual(initialState);
+    expect(DefaultState.getState()).toStrictEqual(initialState);
+
+    unsubscribe()
   });
 });

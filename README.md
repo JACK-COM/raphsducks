@@ -6,6 +6,16 @@
 > I am _so sorry_ you ever had to deal with the old library.
 > * Version `1.1.x` adds typescript support, and a new `subscribeOnce` function (see below)
 
+## Table Of Contents
+* [Installation](#installation)
+* [Usage](#usage---core-concepts)
+  * [Core Concepts](#usage---core-concepts)
+  * [Working with Types](#usage---property-type-assertions)
+  * [Examples (Vue, React)](#usage---examples)
+* [Reference/API](#reference)
+* [iFAQs](#ifaqs-infrequently-asked-questions)
+* [Development](#development)
+
 ## What is it?
 * A simple Javascript state manager. 
 * API is based on the Redux core (i.e. includes familiar functions like `subscribe` and `getState`), but without reducers and other complexities
@@ -14,7 +24,75 @@
 If it isn't the simplest state-manager you have ever encountered,I'll ...\
 I'll eat my very ~~javascript~~ typescript. 
 
-## Example Usage
+## Usage Overview
+This library can be used singly, or in combination with other state managers. It aims to allow the following with limited overhead: 
+1) Define a state, and 
+2) Use it.
+
+
+```typescript
+/* MyApplicationStore.js */ 
+import createState from '@jackcom/raphsducks';
+
+// This is just an example used in the instantiation below
+type Todo = { title: string, value: boolean };
+
+// State definition: the object-literal you supply is your initial state.
+const store = createState({
+    // Cast array types to prevent type assertion errors at compile time:
+    todos: ([] as Todo[]),
+    // Other types can be inferred
+    someOtherValue: false,
+    someCounter: 0
+});
+
+// Update one key. Make sure the value matches the initialization param
+store.todos([{ title: "Write code", value: true }]);
+
+// Update multiple keys at once:
+store.multiple({
+    todos: [{ title: "Write code", value: true }],
+    someOtherValue: true,
+});
+
+// Subscribe for updates and receive an unsubscribe function
+const unsubscribe = store.subscribe((state, updatedKeys) => {
+    let myTodos;
+
+    if (updatedKeys.includes("todos")) {
+        myTodos = state.todos
+    }
+})
+
+// stop listening to state updates
+unsubscribe()
+
+// (OPTIONAL) export for use in other parts of your app
+export default store;
+```
+The library exports a single function, `createState`.\
+When called, this returns an `State` instance, which
+  * Turns every state property into a **setter function**, and
+  * Provides additional functions for reading or subscribing to that state
+  
+In the example above, both `todos` and `someOtherValue` will become functions on `store`. See [usage below](#usage---core-concepts)
+
+> <b style="color:#C03">Important!</b> To prevent type assertion errors, make sure you initialize your keys with a corresponding type. (i.e. a key initialized with `null` will *always* expect `null` as an update value)
+
+## What does it NOT do?
+This is a purely in-memory state manager: it does NOT 
+* Serialize data and/or interact with other storage mechanisms (e.g. `localStorage` or `sessionStorage`). 
+* Prevent you from implementing any additional storage mechanisms
+* Conflict with any other state managers
+
+
+## Installation
+    npm i -s @jackcom/raphsducks
+
+## Usage - Core Concepts
+
+### 1. Creating your state instance
+Initialize your `state` in a file (or application component, or, you know, wherever)
 ```typescript
 /* MyApplicationStore.js */ 
 import createState from '@jackcom/raphsducks';
@@ -28,32 +106,9 @@ const store = createState({
 // (OPTIONAL) export for use in other parts of your app
 export default store;
 ```
-The library exports a single function, `createState`.\
-When called, this returns an `State` instance, which
-  * Turns every state property into a **setter function**, and
-  * Provides additional functions for reading or subscribing to that state
-  
-In the example above, both `todos` and `someOtherValue` will become functions on `store`. See [usage below](#usage---core-concepts)
-## What does it NOT do?
-This is a purely in-memory state manager: it does NOT 
-* Serialize data and/or interact with other storage mechanisms (e.g. `localStorage` or `sessionStorage`). 
-* Prevent you from implementing any additional storage mechanisms
-* Conflict with any other state managers
 
-## Table Of Contents
-* [Installation](#installation)
-* [Usage](#usage---core-concepts)
-* [Reference/API](#reference)
-* [iFAQs](#ifaqs-infrequently-asked-questions)
-* [Development](#development)
-
-## Installation
-    npm i -s @jackcom/raphsducks
-
-## Usage - Core Concepts
-
-Usage is as easy as (1)!
-### 1. Use your `state` in a file (or application component, or, you know, wherever)
+### 2. Using the state instance
+Use your `state` in a file (or application component, or, you know, wherever)
 ```typescript
     // SomewhereInAComponent.js
     import store from './path/to/MyApplicationStore.js';
@@ -66,13 +121,23 @@ Usage is as easy as (1)!
         todos: [{ title: "Write code", value: true }],
         someOtherValue: true,
     });
+```
 
-    // 2. Check current state
-    const currentState = store.getState();
-
-    // 3. a) Subscribe for updates: optionally use 'updatedKeys' to restrict local updates
-    //       Calling 'instance.subscribe( ... )' returns an 'unsubscriber' function
-    const localUnsubscribe = store.subscribe((updatedState, updatedKeys: string[]) => {
+### 3. Access values in the current state 
+#### i. Ad-hoc access
+```typescript
+    // a) Check current state. You can get the entire state object, 
+    const currentState = store.getState(); // { todos: [...], someOtherValue: ... }
+    
+    // ...or deconstruct only what you need.
+    const { todos } = store.getState();
+```
+#### ii. Access the current state via subscription
+```typescript
+    // Subscribe for updates: optionally use 'updatedKeys' to restrict local updates
+    // Calling 'subscribe( ... )' returns an 'unsubscribe' function, which you can use
+    // for cleanup
+    const unsubscribe = store.subscribe((updatedState, updatedKeys: string[]) => {
         let localTodos = [];
 
         if (updatedKeys.includes("todos")) {
@@ -80,32 +145,70 @@ Usage is as easy as (1)!
         }
     })
 
-    // 3. b) NEW: Subscribe ONCE for updates. When the target 'key' is updated, listener
-    //       will be automatically unsubscribed
-    let localTodos = [];
-    // This update will fire once, when next 'todos' is updated.
-    store.subscribeOnce(({ todos } /* , updatedKeys: string[] */) => {
-        localTodos = [...todos];
-    })
+    // Stop listening to updates
+    unsubscribe();
 
-    // 4. stop listening to updates
-    localUnsubscribe();
-
-    // 5. Reset state to starting point (this won't remove your subscribers)
+    // Reset state to starting point (this won't remove your subscribers)
     store.reset();
 ```
+#### iii. Access the current state via one-time subscriptions
+```typescript
+    // Subscribe ONCE for updates. When the target 'key' is updated, your listener
+    // will be triggered with only that value, and subsequently unsubscribed. 
+    // Below, we listen until 'state.someValue' is updated:
+    const listener = (someValue: number) => {
+        // ... do something with 'state.someValue'
+    }
 
-> **NOTE:**: Don't use uninstantiated keys at runtime, or you will get an error! Given our example
+    // Note: You can EITHER listen until 'state.someValue' gets updated,
+    store.subscribeOnce(listener, "someValue");
+
+    // OR listen until 'someValue' is set to a specific update value. 
+    // The example below will only fire when 'state.someValue === 3':
+    store.subscribeOnce(listener, "someValue", (v) => v === 3);
+```
+
+> **NOTE:** Don't use uninstantiated keys at runtime, or you will get an error! Given our example
 > above, the following will fail since `invalidKey` wasn't in the arguments to `createState`:
 > ```javascript
 > store.multiple({ wellThisIsNew: true, todos: [ ... ] })
 > ```
 
-## Usage - Other Concepts
+## Usage - Property Type Assertions
+Some state properties will require type assertions at initialization, in order to prevent compile-time errors. Here's how you can get around that. 
 
-If you want to be automatically notified when the state changes, you can subscribe to the 
-instance. This is useful when working in a front-end framework. See examples below.
-* [React Higher Order Component (HOC)](/readme-examples/react-subscriber-hoc.md)
+
+
+#### [✅] Example: Initializing an array property the Smart™ way
+```typescript
+// Cast the property in the initialization parameter
+const store = createState({
+    someArray: ([] as number[])
+})
+
+// This works because the property is now expecting a list of numbers
+store.someArray([1,2,3]);
+```
+#### [❌] Example: Initializing an array property the *wrong* way
+The following will cause you untold sorrows and gnashing of teeth.
+```typescript
+// Initialize an unspecified array type
+const store = createState({
+    someArray: []
+})
+
+// Pushing a list of numbers will fail because 'number' cannot be assigned to type 'never'
+store.someArray([1,2,3]);
+
+// Ugly workaround -> this will actually suppress the errors, but you will have to do it
+// everywhere that you use this property, which makes for some ugly code
+store.someArray(([1,2,3] as never[]))
+```
+
+## Usage - Examples
+Some illustrative examples using popular front-end frameworks are provided below:
+* [React: Higher Order Component (HOC)](/readme-examples/react-subscriber-hoc.md)
+* [React: Using Functional Components](/readme-examples/react-functional-subscription.md)
 * [VueJS (2x, 3x) Mixin](/readme-examples/vue-subscriber-mixin.md)
 
 
@@ -204,7 +307,7 @@ This is a UI-agnostic library, hatched when I was learning React and (patterns f
 ### 3. Can I use this in [React, Vue, Svelte ... ]?
     Yes.
 
-This is, ultimately, a plain JS object. You can use it anywhere you can use JS and need a dynamic state of some kind. It can be resricted to a single component, or used for an entire application. 
+This is, ultimately, a plain JS object. You can use it anywhere you can use JS and need a dynamic in-memory state. It can be resricted to a single component, or used for an entire application. See the [examples above](#usage---examples).
 ### No restrictions; only Javascript.
 ---
 ### 4. Why not just use redux?
