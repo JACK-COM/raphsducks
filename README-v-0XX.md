@@ -1,4 +1,7 @@
-# Raph's Ducks - v.0.5.1
+# `@deprecated` | Raph's Ducks - v.0.5.1
+
+> **Note:** All versions below v1.X.X have been deprecated with *extreme* prejudice. Absolutely no support will be provided for them, and it is recommended that you migrate to the newer versions ASAP.
+
 Sweet merciful heavens; not _another_ State Manager...
 
 ## Table Of Contents
