@@ -166,15 +166,16 @@ Looking for something? Some items may be in [`v.0.5.x` documentation](/README-v-
 * Defines a unique, shareable, subscribable Application State
 * Uses a `createState` function helper for instantiating the state
 * Uses `getState`, and `subscribe` methods (for getting a copy of current state, and listening to updates).
+  * `subscribe` even returns an unsubscribe function!
 
 ### How is it different from Redux?
 * No `Actions`.
 * No `dispatchers`
+* No `reducers`
 
-_Raphsducks_ is a very lightweight library that mainly allows you to instantiate a global state and subscribe to/unsubscribe from it.\
-It doesn't do any additional work to make that state global. 
+_Raphsducks_ is a very lightweight library that mainly allows you to instantiate a global state and subscribe to changes made to it, or subsets of it.\
+You can think of it as a light cross between [Redux](https://www.npmjs.com/package/redux) and [PubSub](https://www.npmjs.com/package/pubsub-js). Or imagine those two libraries got into a fight in a cloning factory, and some of their DNA got mixed in one of those vats of mystery goo that clones things. 
 
-I *could* say it's smaller and easier to reason about -- but that would be conjecture.
 
 
 ### 1. Why did you choose that name?
@@ -191,8 +192,10 @@ This is a UI-agnostic library, hatched when I was learning React and (patterns f
 ### 3. Can I use this in [React, Vue, Svelte ... ]?
     Yes.
 
-This is, ultimately, a plain JS object. You can use it anywhere you can use JS and need a dynamic in-memory state. It can be resricted to a single component, or used for an entire application. See the [examples above](#usage---examples).
-### No restrictions; only Javascript.
+*No restrictions; only Javascript*
+---
+This is, ultimately, a plain JS object. You can use it anywhere you can use JS and need a dynamic in-memory state. It can be resricted to a single component, or used for an entire application. See the [examples for UI frameworks](/readme-pages/USAGE.md#usage---examples).
+
 ---
 ### 4. Why not just use redux?
     This is much, much simpler to learn and implement.
