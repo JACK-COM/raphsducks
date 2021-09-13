@@ -9,7 +9,7 @@ class _ApplicationStore {
   [x: string]: any;
 
   /** Subscribers/Listeners that are called when the state changes */
-  subscribers: Listener[] = [];
+  subscribers: ListenerFn[] = [];
 
   /** @private Copy of original state args */
   private ref: ApplicationState | null = null;
@@ -50,7 +50,7 @@ class _ApplicationStore {
    * @param {Partial<ApplicationState>} changes Data source for state updates. This
    * is an object with one or more state keys that need to be updated.
    */
-  multiple(changes: Partial<ApplicationState>) {
+  multiple(changes: Partial<ApplicationState>): void {
     if (typeof changes !== "object") {
       throw new Error("State updates need to be a key-value object literal");
     }
@@ -76,30 +76,35 @@ class _ApplicationStore {
     this.multiple({ ...this.ref });
   }
 
-  /** Subscribe to the state instance. Returns an `unsubscribe` function */
-  subscribe(listener: Listener): () => void {
-    // This better be a function. Or Else.
-    if (typeof listener !== "function") {
-      const msg = `Invalid listener: '${typeof listener}' is not a function`;
-      throw new Error(msg);
-    }
+  /**
+   * Subscribe to the state instance. Returns an `unsubscribe` function
+   * @param listener Listener function
+   * @returns {Unsubscriber} Unsubscribe function
+   */
+  subscribe(listener: ListenerFn): Unsubscriber {
+    const invalidListener = validateListener(listener);
+    if (invalidListener) throw new Error(invalidListener);
+
+    // Return no-operation if already subscribed
+    if (this.subscribers.includes(listener)) return noOp;
 
     // Add listener and  return unsubscriber function
-    if (!this.subscribers.includes(listener)) {
-      this.subscribers.push(listener);
-      return () => this.unsubscribeListener(listener);
-    }
-
-    // Return no-operation
-    return noOp;
+    this.subscribers.push(listener);
+    return () => this.unsubscribeListener(listener);
   }
 
   /**
    * Subscribe until a specified `key` is updated, then unsubscribe. Optionally takes
-   * a value-checker in case you want to subscribe until a particular value is received
+   * a value-checker in case you want to subscribe until a particular value is received.
+   * It creates a new subscriber that triggers the listener when `key` is updated, and/or
+   * when the value of `key` passes the `valueCheck` function (if one is supplied).
+   * @param listener Listener function
+   * @param key Key to check for updates
+   * @param valueCheck Optional function to assert the value of `key` when it updates.
+   * @returns {Unsubscriber} Unsubscribe function
    */
   subscribeOnce(
-    listener: Listener,
+    listener: ListenerFn,
     key: string,
     valueCheck?: (a: any) => boolean
   ): void {
@@ -118,18 +123,74 @@ class _ApplicationStore {
     });
   }
 
-  private unsubscribeListener(listener: Listener) {
-    const matchListener = (l: Listener) => !(l === listener);
+  /**
+   * Subscribe to changes applied to a subset of state properties.
+   * @param listener Listener function
+   * @param keys List of state keys to "watch" for updates
+   * @param valueCheck Optional function to assert the value of `key` when it updates.
+   * @returns {Unsubscriber} Unsubscribe function
+   */
+  subscribeToKeys(
+    listener: ListenerFn,
+    keys: string[],
+    valueCheck = (k: string, v: any) => true
+  ): Unsubscriber {
+    const invalidListener = validateListener(listener);
+    if (invalidListener) throw new Error(invalidListener);
+
+    // construct a custom subscriber
+    const keysListener = (s: Partial<ApplicationState>, k: string[]) => {
+      // Create a new list of updated keys (subset for listener)
+      const updatedKeys: string[] = [];
+      const u: Partial<ApplicationState> = keys.reduce((agg, key) => {
+        // Copy updated values that appear in the `keys` list and assert value
+        if (k.includes(key) && valueCheck(key, s[key])) {
+          updatedKeys.push(key);
+          return { ...agg, [key]: s[key] };
+        }
+
+        return agg;
+      }, {});
+
+      // Notify listener if there are updates to be made
+      if (updatedKeys.length) listener(u, updatedKeys);
+    };
+
+    // return an unsubscribe function
+    return this.subscribe(keysListener);
+  }
+
+  /**
+   * @private Remove a subscriber so that it no longer receives updates.
+   */
+  private unsubscribeListener(listener: ListenerFn) {
+    const matchListener = (l: ListenerFn) => !(l === listener);
     this.subscribers = [...this.subscribers].filter(matchListener);
   }
 
-  /** @private Update the instance with changes, then notify subscribers with a copy */
+  /**
+   * @private Update the instance with changes, then notify subscribers with a copy
+   */
   private updateState(updated: ApplicationState, updatedKeys: string[] = []) {
     this.state = updated;
-    this.subscribers.forEach((listener: Listener) =>
+    this.subscribers.forEach((listener: ListenerFn) =>
       listener(updated, updatedKeys)
     );
   }
+}
+
+/**
+ * Return an error message when a param is not a function.
+ * @param listener Listener function parameter
+ * @returns {string|null} Error message or `null` if param is valid
+ */
+function validateListener(listener: ListenerFn): string | null {
+  // This better be a function. Or Else.
+  if (typeof listener !== "function") {
+    return `Invalid listener: '${typeof listener}' is not a function`;
+  }
+
+  return null;
 }
 
 /** Passed ref for retaining type definitions */

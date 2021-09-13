@@ -24,6 +24,9 @@
 If it isn't the simplest state-manager you have ever encountered,I'll ...\
 I'll eat my very ~~javascript~~ typescript. 
 
+## Installation
+    npm i -s @jackcom/raphsducks
+
 ## Usage Overview
 This library can be used singly, or in combination with other state managers. It aims to allow the following with limited overhead: 
 1) Define a state, and 
@@ -75,7 +78,7 @@ When called, this returns an `State` instance, which
   * Turns every state property into a **setter function**, and
   * Provides additional functions for reading or subscribing to that state
   
-In the example above, both `todos` and `someOtherValue` will become functions on `store`. See [usage below](#usage---core-concepts)
+In the example above, both `todos` and `someOtherValue` will become functions on `store`. See [usage here](/readme-pages/USAGE.md)
 
 > <b style="color:#C03">Important!</b> To prevent type assertion errors, make sure you initialize your keys with a corresponding type. (i.e. a key initialized with `null` will *always* expect `null` as an update value)
 
@@ -84,132 +87,6 @@ This is a purely in-memory state manager: it does NOT
 * Serialize data and/or interact with other storage mechanisms (e.g. `localStorage` or `sessionStorage`). 
 * Prevent you from implementing any additional storage mechanisms
 * Conflict with any other state managers
-
-
-## Installation
-    npm i -s @jackcom/raphsducks
-
-## Usage - Core Concepts
-
-### 1. Creating your state instance
-Initialize your `state` in a file (or application component, or, you know, wherever)
-```typescript
-/* MyApplicationStore.js */ 
-import createState from '@jackcom/raphsducks';
-
-// State definition: the object-literal you pass in is your state.
-const store = createState({
-    todos: [],
-    someOtherValue: false,
-});
-
-// (OPTIONAL) export for use in other parts of your app
-export default store;
-```
-
-### 2. Using the state instance
-Use your `state` in a file (or application component, or, you know, wherever)
-```typescript
-    // SomewhereInAComponent.js
-    import store from './path/to/MyApplicationStore.js';
-
-    // 1a) Update one key at a time:
-    store.todos([{ title: "Write code", value: true }]);
-    store.someOtherValue(true);
-    // 1b) Update multiple keys at once:
-    store.multiple({
-        todos: [{ title: "Write code", value: true }],
-        someOtherValue: true,
-    });
-```
-
-### 3. Access values in the current state 
-#### i. Ad-hoc access
-```typescript
-    // a) Check current state. You can get the entire state object, 
-    const currentState = store.getState(); // { todos: [...], someOtherValue: ... }
-    
-    // ...or deconstruct only what you need.
-    const { todos } = store.getState();
-```
-#### ii. Access the current state via subscription
-```typescript
-    // Subscribe for updates: optionally use 'updatedKeys' to restrict local updates
-    // Calling 'subscribe( ... )' returns an 'unsubscribe' function, which you can use
-    // for cleanup
-    const unsubscribe = store.subscribe((updatedState, updatedKeys: string[]) => {
-        let localTodos = [];
-
-        if (updatedKeys.includes("todos")) {
-            localTodos = [...updatedState.todos];
-        }
-    })
-
-    // Stop listening to updates
-    unsubscribe();
-
-    // Reset state to starting point (this won't remove your subscribers)
-    store.reset();
-```
-#### iii. Access the current state via one-time subscriptions
-```typescript
-    // Subscribe ONCE for updates. When the target 'key' is updated, your listener
-    // will be triggered with only that value, and subsequently unsubscribed. 
-    // Below, we listen until 'state.someValue' is updated:
-    const listener = (someValue: number) => {
-        // ... do something with 'state.someValue'
-    }
-
-    // Note: You can EITHER listen until 'state.someValue' gets updated,
-    store.subscribeOnce(listener, "someValue");
-
-    // OR listen until 'someValue' is set to a specific update value. 
-    // The example below will only fire when 'state.someValue === 3':
-    store.subscribeOnce(listener, "someValue", (v) => v === 3);
-```
-
-> **NOTE:** Don't use uninstantiated keys at runtime, or you will get an error! Given our example
-> above, the following will fail since `invalidKey` wasn't in the arguments to `createState`:
-> ```javascript
-> store.multiple({ wellThisIsNew: true, todos: [ ... ] })
-> ```
-
-## Usage - Property Type Assertions
-Some state properties will require type assertions at initialization, in order to prevent compile-time errors. Here's how you can get around that. 
-
-
-
-#### [✅] Example: Initializing an array property the Smart™ way
-```typescript
-// Cast the property in the initialization parameter
-const store = createState({
-    someArray: ([] as number[])
-})
-
-// This works because the property is now expecting a list of numbers
-store.someArray([1,2,3]);
-```
-#### [❌] Example: Initializing an array property the *wrong* way
-The following will cause you untold sorrows and gnashing of teeth.
-```typescript
-// Initialize an unspecified array type
-const store = createState({
-    someArray: []
-})
-
-// Pushing a list of numbers will fail because 'number' cannot be assigned to type 'never'
-store.someArray([1,2,3]);
-
-// Ugly workaround -> this will actually suppress the errors, but you will have to do it
-// everywhere that you use this property, which makes for some ugly code
-store.someArray(([1,2,3] as never[]))
-```
-
-## Usage - Examples
-Some illustrative examples using popular front-end frameworks are provided below:
-* [React: Higher Order Component (HOC)](/readme-examples/react-subscriber-hoc.md)
-* [React: Using Functional Components](/readme-examples/react-functional-subscription.md)
-* [VueJS (2x, 3x) Mixin](/readme-examples/vue-subscriber-mixin.md)
 
 
 ## Reference
@@ -226,38 +103,42 @@ Some illustrative examples using popular front-end frameworks are provided below
 
 ### **ApplicationStore** (Class)
 
-* State instance returned from `createState()`. 
+* State instance returned from `createState()`. View full API and method explanations [here](/readme-pages/API.md).
     ```typescript
-    ApplicationStore (instance) {
-        // Reset all properties (except subscribers) to their original state
-        reset(): void 
-
-        // Read current state
-        getState(): void 
-
-        // Listen to state instance updates: returns an "unsubscribe" function.
-        subscribe(listener: (updates: T, updatedKeys: string[]): any | void): ():void
-
-        // Listen to instance updates until 'key' is updated, then auto-unsubscribe
-        subscribeOnce(listener: (updates: T, updatedKeys: string[]): any | void, key: string):void
-
-        // Update one or more keys at once on the instance
-        multiple(updates: object) => void 
-
-        // This represents any key you pass into `createState`. The function will be created for you
-        [K: string]: (value?: any) => void 
+    class ApplicationStore {
+        getState(): ApplicationState;
         
-    }   
+        multiple(changes: Partial<ApplicationState>): void;
+        
+        reset(clearSubscribers?: boolean): void;
+        
+        subscribe(listener: ListenerFn): Unsubscriber;
+        
+        subscribeOnce(
+            listener: ListenerFn,
+            key: string,
+            valueCheck?: (some: any) => boolean
+        ): void;
+
+        subscribeToKeys(
+            listener: ListenerFn,
+            keys: string[],
+            valueCheck?: (key: string, expectedValue: any) => boolean
+        ): Unsubscriber;
+
+        // This represents any key in the object passed into 'createState'
+        [x: string]: StoreUpdaterFn | any;
+    }
     ```
 ### `Listener Functions`
 A `listener` is a function that reacts to state updates. It expects one or two arguments: 
 * `state: { [x:string]: any }`: the updated `state` object. 
 * `updatedItems: string[]`: a list of keys (`state` object properties) that were just updated. 
-    
+
+#### Example Listener
+A basic Listener receives the updated application state, and the names of any changed properties, as below:
 ```typescript
-    // A basic Listener receives the updated application state, and the names of any changed properties
     function myListener(updatedState: object, updatedItems: string[]) => {
-        
         // You can check if your property changed
         if (updatedState.todos === myLocalStateCopy.todos) return; 
 
@@ -269,11 +150,14 @@ A `listener` is a function that reacts to state updates. It expects one or two a
     };
 ```
 
+You can define your `listener` where it makes the most sense (i.e. as either a standalone function or a method on a UI component)
 
-### Deprecated in 0.5.x
+---
+## Deprecated Versions
 
-Looking for something? Some items may be in [`v.0.5.x` documentation](/README-v-0XX.md), if you can't find them here. 
+Looking for something? Some items may be in [`v.0.5.x` documentation](/README-v-0XX.md), if you can't find them here. Please note that any version below 1.X.X is very extremely unsupported, and may elicit sympathetic looks and "tsk" noises.
 
+---
 ## iFAQs (Infrequently Asked Questions) 
 ### What is (are?) `Raph's Ducks`?
     A publish/subscribe state-management system: originally inspired by Redux, but now hyper-simplified.
@@ -282,15 +166,16 @@ Looking for something? Some items may be in [`v.0.5.x` documentation](/README-v-
 * Defines a unique, shareable, subscribable Application State
 * Uses a `createState` function helper for instantiating the state
 * Uses `getState`, and `subscribe` methods (for getting a copy of current state, and listening to updates).
+  * `subscribe` even returns an unsubscribe function!
 
 ### How is it different from Redux?
 * No `Actions`.
 * No `dispatchers`
+* No `reducers`
 
-_Raphsducks_ is a very lightweight library that mainly allows you to instantiate a global state and subscribe to/unsubscribe from it.\
-It doesn't do any additional work to make that state global. 
+_Raphsducks_ is a very lightweight library that mainly allows you to instantiate a global state and subscribe to changes made to it, or subsets of it.\
+You can think of it as a light cross between [Redux](https://www.npmjs.com/package/redux) and [PubSub](https://www.npmjs.com/package/pubsub-js). Or imagine those two libraries got into a fight in a cloning factory, and some of their DNA got mixed in one of those vats of mystery goo that clones things. 
 
-I *could* say it's smaller and easier to reason about -- but that would be conjecture.
 
 
 ### 1. Why did you choose that name?
@@ -300,15 +185,17 @@ I *could* say it's smaller and easier to reason about -- but that would be conje
     Nope
 This is a UI-agnostic library, hatched when I was learning React and (patterns from) Redux. The first implementation came directly from [Dan Abramov's egghead.io tutorial](https://egghead.io/courses/getting-started-with-redux "Getting started with Redux"), and was much heavier on Redux-style things. Later iterations became simpler until the current version evolved.
 
- Dan Abramov, if you're not immediately familiar, created the *Redux* library.\
+ Dan Abramov, if you're not immediately familiar, created the *Redux* library.
 
 
 ---
 ### 3. Can I use this in [React, Vue, Svelte ... ]?
     Yes.
 
-This is, ultimately, a plain JS object. You can use it anywhere you can use JS and need a dynamic in-memory state. It can be resricted to a single component, or used for an entire application. See the [examples above](#usage---examples).
-### No restrictions; only Javascript.
+*No restrictions; only Javascript*
+---
+This is, ultimately, a plain JS object. You can use it anywhere you can use JS and need a dynamic in-memory state. It can be resricted to a single component, or used for an entire application. See the [examples for UI frameworks](/readme-pages/USAGE.md#usage---examples).
+
 ---
 ### 4. Why not just use redux?
     This is much, much simpler to learn and implement.
