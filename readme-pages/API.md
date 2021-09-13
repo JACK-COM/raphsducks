@@ -57,7 +57,7 @@ Any mention of `state` is a reference to your initial state, which you pass into
   ): void;
 ```
 
-`subscribeOnce(l: ListenerFn, key: string, valueCheck?: (v: any) => boolean)`
+`subscribeToKeys(l: ListenerFn, keys: string[], valueCheck?: (v: any) => boolean)`
 * Subscribe to changes applied to a subset of state properties. 
 * Optionally takes a value-checker in case you want to listen for particular values.
 ```typescript
