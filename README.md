@@ -7,12 +7,12 @@
 > * Version `1.1.x` adds typescript support, and a new `subscribeOnce` function (see below)
 
 ## Table Of Contents
+* [What is it?](#what-is-it)
 * [Installation](#installation)
-* [Usage](#usage---core-concepts)
-  * [Core Concepts](#usage---core-concepts)
-  * [Working with Types](#usage---property-type-assertions)
-  * [Examples (Vue, React)](#usage---examples)
-* [Reference/API](#reference)
+* [Usage Overview](#usage-overview)
+* [Reference](#reference)
+* [What does it NOT do?](#what-does-it-not-do)
+* [Deprecated versions](#deprecated-versions)
 * [iFAQs](#ifaqs-infrequently-asked-questions)
 * [Development](#development)
 
@@ -24,9 +24,11 @@
 If it isn't the simplest state-manager you have ever encountered,I'll ...\
 I'll eat my very ~~javascript~~ typescript. 
 
+---
 ## Installation
     npm i -s @jackcom/raphsducks
 
+---
 ## Usage Overview
 This library can be used singly, or in combination with other state managers. It aims to allow the following with limited overhead: 
 1) Define a state, and 
@@ -82,13 +84,7 @@ In the example above, both `todos` and `someOtherValue` will become functions on
 
 > <b style="color:#C03">Important!</b> To prevent type assertion errors, make sure you initialize your keys with a corresponding type. (i.e. a key initialized with `null` will *always* expect `null` as an update value)
 
-## What does it NOT do?
-This is a purely in-memory state manager: it does NOT 
-* Serialize data and/or interact with other storage mechanisms (e.g. `localStorage` or `sessionStorage`). 
-* Prevent you from implementing any additional storage mechanisms
-* Conflict with any other state managers
-
-
+---
 ## Reference
 ### **createState**
 * Default Library export: Creates a new `state`  using the supplied initial state. Parameters:
@@ -135,6 +131,7 @@ A `listener` is a function that reacts to state updates. It expects one or two a
 * `state: { [x:string]: any }`: the updated `state` object. 
 * `updatedItems: string[]`: a list of keys (`state` object properties) that were just updated. 
 
+
 #### Example Listener
 A basic Listener receives the updated application state, and the names of any changed properties, as below:
 ```typescript
@@ -153,6 +150,13 @@ A basic Listener receives the updated application state, and the names of any ch
 You can define your `listener` where it makes the most sense (i.e. as either a standalone function or a method on a UI component)
 
 ---
+
+## What does it NOT do?
+This is a purely in-memory state manager: it does NOT 
+* Serialize data and/or interact with other storage mechanisms (e.g. `localStorage` or `sessionStorage`). 
+* Prevent you from implementing any additional storage mechanisms
+* Conflict with any other state managers
+
 ## Deprecated Versions
 
 Looking for something? Some items may be in [`v.0.5.x` documentation](/README-v-0XX.md), if you can't find them here. Please note that any version below 1.X.X is very extremely unsupported, and may elicit sympathetic looks and "tsk" noises.
