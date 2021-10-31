@@ -38,7 +38,7 @@ Any mention of `state` is a reference to your initial state, which you pass into
   subscribe(listener: ListenerFn): Unsubscriber;
 ```
 
-`subscribeOnce(l: ListenerFn, key: string, valueCheck?: (v: any) => boolean)`
+`subscribeOnce(l: ListenerFn, key: string, valueCheck?: (v: any) => boolean): unsubscribeFn`
 * Subscribe until a specified `key` is updated, then unsubscribe. 
 * Optionally takes a value-checker in case you want to subscribe until a particular value is received.
 ```typescript
@@ -54,7 +54,7 @@ Any mention of `state` is a reference to your initial state, which you pass into
     listener: ListenerFn,
     key: string,
     valueCheck?: (some: any) => boolean
-  ): void;
+  ): Unsubscriber;
 ```
 
 `subscribeToKeys(l: ListenerFn, keys: string[], valueCheck?: (v: any) => boolean)`
