@@ -107,7 +107,7 @@ class _ApplicationStore {
     listener: ListenerFn,
     key: string,
     valueCheck?: (a: any) => boolean
-  ): void {
+  ): Unsubscriber {
     const unsubscribe = this.subscribe((state, updated) => {
       const exit = () => {
         listener(state, updated);
@@ -121,6 +121,8 @@ class _ApplicationStore {
       // Trigger the listener if the key was updated, and unsubscribe immediately
       else if (valueCheck(state[key])) return exit();
     });
+
+    return unsubscribe;
   }
 
   /**

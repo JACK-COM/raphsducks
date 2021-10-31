@@ -48,7 +48,7 @@ declare function createState<S extends G>(
    * @param listener Listener function
    * @returns {() => void} Unsubscribe function
    */
-  subscribe(listener: ListenerFn<Partial<S>>): () => void;
+  subscribe(listener: ListenerFn<Partial<S>>): Unsubscriber;
 
   /**
    * Subscribe until a specified `key` is updated, then unsubscribe. Optionally takes
@@ -64,7 +64,7 @@ declare function createState<S extends G>(
     listener: ListenerFn<Partial<S>>,
     key: string,
     valueCheck?: (some: any) => boolean
-  ): void;
+  ): Unsubscriber;
 
   /**
    * Subscribe to changes applied to a subset of state properties. Optionally takes

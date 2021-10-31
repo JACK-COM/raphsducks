@@ -40,7 +40,7 @@ interface Store {
     listener: ListenerFn,
     key: string,
     valueCheck?: (some: any) => boolean
-  ): void;
+  ): Unsubscriber;
 
   /**
    * Subscribe to changes applied to a subset of state properties. Optionally takes
