@@ -1,4 +1,4 @@
-type G = { [x: string]: (any[] | any) | null | undefined };
+type G = Record<string,any> & { [x: string]: (any[] | any) | null | undefined };
 
 /**
  * Function that receives the updated state and a list of keys
@@ -62,7 +62,7 @@ declare function createState<S extends G>(
    */
   subscribeOnce(
     listener: ListenerFn<Partial<S>>,
-    key: string,
+    key: keyof S,
     valueCheck?: (some: any) => boolean
   ): Unsubscriber;
 
@@ -75,9 +75,9 @@ declare function createState<S extends G>(
    */
   subscribeToKeys(
     listener: ListenerFn<Partial<S>>,
-    keys: string[],
+    keys: Partial<keyof S>[] | string[],
     valueCheck?: (key: string, expectedValue: any) => boolean
   ): Unsubscriber;
-} & { [k in keyof S]: (u: any) => void };
+} & { [k in keyof S]: (u: S[k]) => void };
 
 export = createState;

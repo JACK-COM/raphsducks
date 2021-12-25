@@ -20,7 +20,7 @@
     "clean": "rm lib/bundle.js",
     "build": "npm run clean && npx webpack --mode development",
     "test": "jest --watchAll",
-    "prepublish": "npm-auto-version",
+    "prepublish": "npm-auto-version && npm run build",
     "postpublish": "git push origin --tags"
   },
   "devDependencies": {
