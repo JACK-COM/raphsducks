@@ -3,14 +3,14 @@ type G = Record<string,any> & { [x: string]: (any[] | any) | null | undefined };
 /**
  * Function that receives the updated state and a list of keys
  */
-declare interface ListenerFn<V> {
+export declare interface ListenerFn<V> {
   (state: V, updatedKeys: string[]): void;
 }
 
 /**
  * Function that unsubscribes a listener from the state
  */
-declare interface Unsubscriber {
+export declare interface Unsubscriber {
   (): void;
 }
 
@@ -80,4 +80,4 @@ declare function createState<S extends G>(
   ): Unsubscriber;
 } & { [k in keyof S]: (u: S[k]) => void };
 
-export = createState;
+export default createState;
