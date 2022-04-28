@@ -36,7 +36,7 @@ class _ApplicationStore {
       };
 
       // (this as any)[key] = updater;
-      (this as Store)[key] = updater as StoreUpdaterFn;
+      (this as Store<ApplicationState>)[key] = updater as StoreUpdaterFn;
     }
   }
 
@@ -103,23 +103,24 @@ class _ApplicationStore {
    * @param valueCheck Optional function to assert the value of `key` when it updates.
    * @returns {Unsubscriber} Unsubscribe function
    */
-  subscribeOnce(
+  subscribeOnce<K extends keyof ApplicationState>(
     listener: ListenerFn,
-    key: string,
-    valueCheck?: (a: any) => boolean
+    key: K,
+    valueCheck?: (a: ApplicationState[K]) => boolean
   ): Unsubscriber {
+    const k = key.toString();
     const unsubscribe = this.subscribe((state, updated) => {
       const exit = () => {
         listener(state, updated);
         unsubscribe();
       };
       // Exit if the key hasn't been updated
-      if (!updated.includes(key)) return;
+      if (!updated.includes(k)) return;
 
       // If there is no value-checker, trigger the listener and unsubscribe.
       if (!valueCheck) return exit();
       // Trigger the listener if the key was updated, and unsubscribe immediately
-      else if (valueCheck(state[key])) return exit();
+      else if (valueCheck(state[k])) return exit();
     });
 
     return unsubscribe;
@@ -197,12 +198,12 @@ function validateListener(listener: ListenerFn): string | null {
 
 /** Passed ref for retaining type definitions */
 const ApplicationStore = _ApplicationStore as {
-  new <T>(s: T): Store & { [k in keyof T]: StoreUpdaterFn };
+  new <T>(s: T): Store<T>;
 };
 
 /** Create an `ApplicationStore` instance */
 export default function createState<T extends { [k: string]: any }>(
   initialState: T
-): Store & { [k in keyof T]: StoreUpdaterFn } {
+): Store<T> {
   return new ApplicationStore(initialState);
 }
