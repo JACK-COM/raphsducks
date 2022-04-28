@@ -16,3 +16,4 @@ lib/
 .Trashes
 ehthumbs.db
 Thumbs.db
+*.tgz

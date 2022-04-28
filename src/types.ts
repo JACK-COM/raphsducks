@@ -4,7 +4,7 @@ type ApplicationState = {
 };
 
 /** State instance */
-interface Store {
+type Store<T> = {
   [x: string]: StoreUpdaterFn | any;
 
   /** Get [a copy of] the current application state */
@@ -36,10 +36,10 @@ interface Store {
    * @param valueCheck Optional function to assert the value of `key` when it updates.
    * @returns {Unsubscriber} Unsubscribe function
    */
-  subscribeOnce(
+  subscribeOnce<K extends keyof T>(
     listener: ListenerFn,
-    key: string,
-    valueCheck?: (some: any) => boolean
+    key: K,
+    valueCheck?: (some: T[K]) => boolean
   ): Unsubscriber;
 
   /**
@@ -54,12 +54,10 @@ interface Store {
     keys: string[],
     valueCheck?: (key: string, expectedValue: any) => boolean
   ): Unsubscriber;
-}
+} & { [k in keyof T]: StoreUpdaterFn };
 
-type StoreUpdaterFn = {
-  /** Function for updating a state key */
-  (value?: any): void;
-};
+/** Function for updating a state key */
+type StoreUpdaterFn = { (value?: any): void };
 
 /** State Listeners are functions that are called when the state changes */
 type ListenerFn = {
