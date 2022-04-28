@@ -1,15 +1,13 @@
-type G = Record<string,any> & { [x: string]: (any[] | any) | null | undefined };
+type G = Record<string, any> & {
+  [x: string]: (any[] | any) | null | undefined;
+};
 
-/**
- * Function that receives the updated state and a list of keys
- */
+/** Receives the updated state and a list of keys */
 export declare interface ListenerFn<V> {
   (state: V, updatedKeys: string[]): void;
 }
 
-/**
- * Function that unsubscribes a listener from the state
- */
+/** Unsubscribes a listener from the state */
 export declare interface Unsubscriber {
   (): void;
 }
@@ -24,9 +22,7 @@ declare function createState<S extends G>(
 ): {
   [x: string]: ((v: any) => void) | any;
 
-  /**
-   * Get [a copy of] the current application state
-   */
+  /** Get [a copy of] the current application state */
   getState(): S;
 
   /**
@@ -60,10 +56,10 @@ declare function createState<S extends G>(
    * @param valueCheck Optional function to assert the value of `key` when it updates.
    * @returns {Unsubscriber} Unsubscribe function
    */
-  subscribeOnce(
+  subscribeOnce<K extends keyof S>(
     listener: ListenerFn<Partial<S>>,
-    key: keyof S,
-    valueCheck?: (some: any) => boolean
+    key: K,
+    valueCheck?: (some: S[K]) => boolean
   ): Unsubscriber;
 
   /**
