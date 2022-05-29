@@ -1,6 +1,9 @@
-import { Subject, Subscription } from "rxjs";
+import { filter, from, map, Subject, Subscription, take } from "rxjs";
+import { ApplicationState, ListenerFn, Store, Unsubscriber } from "./types";
 
 const noOp = () => {};
+
+export type StateUpdate = [ApplicationState, string[]];
 
 /**
  * A representation of an Application state.`ApplicationStore` is the state instance that
@@ -10,13 +13,13 @@ const noOp = () => {};
 class _ApplicationStore {
   [x: string]: any;
 
-  private subject: Subject<[ApplicationState, string[]]> = new Subject();
+  private subject: Subject<StateUpdate> = new Subject();
 
   /** Hold all subscriptions for one-shot reset */
   private allSubscriptions: Subscription;
 
   /** Subscribers/Listeners that are called when the state changes */
-  subscribers: ListenerFn[] = [];
+  subscribers: ListenerFn<ApplicationState>[] = [];
 
   /** @private Copy of original state args */
   private ref: ApplicationState | null = null;
@@ -90,24 +93,36 @@ class _ApplicationStore {
   /**
    * Subscribe to the state instance. Returns an `unsubscribe` function
    * @param listener Listener function
-   * @returns {Unsubscriber} Unsubscribe function
+   * @returns Unsubscribe function
    */
-  subscribe(listener: ListenerFn): Unsubscriber {
+  subscribe(listener: ListenerFn<ApplicationState>): Unsubscriber {
     const invalidListener = validateListener(listener);
     if (invalidListener) throw new Error(invalidListener);
 
     // Return no-operation if already subscribed
     if (isSubscribed(listener, this.subscribers)) return noOp;
-    this.subscribers.push(listener);
 
-    const listenerSub = this.subject.subscribe({
-      next: (s: [updatedState: any, updatedKeys: string[]]) => {
-        listener(s[0], s[1]);
+    const subscription = this.subject.subscribe({
+      next: (vals) => {
+        const [updatedState, updatedKeys] = vals;
+        listener(updatedState, updatedKeys);
       },
     });
 
-    this.allSubscriptions.add(listenerSub);
-    return listenerSub.unsubscribe;
+    return this.handleUnsubscription(subscription, listener);
+  }
+
+  private handleUnsubscription(
+    subscription: Subscription,
+    listener: ListenerFn<ApplicationState>
+  ) {
+    this.subscribers.push(listener);
+    this.allSubscriptions.add(subscription);
+
+    return () => {
+      subscription.unsubscribe();
+      this.subscribers = this.subscribers.filter((l) => l !== listener);
+    };
   }
 
   /**
@@ -118,10 +133,10 @@ class _ApplicationStore {
    * @param listener Listener function
    * @param key Key to check for updates
    * @param expectValue Optional function to assert the value of `key` when it updates.
-   * @returns {Unsubscriber} Unsubscribe function
+   * @returns Unsubscribe function
    */
   subscribeOnce<K extends keyof ApplicationState>(
-    listener: ListenerFn,
+    listener: ListenerFn<ApplicationState>,
     key: K,
     expectValue?: (val: ApplicationState[K]) => boolean
   ): Unsubscriber {
@@ -129,27 +144,31 @@ class _ApplicationStore {
     if (invalidListener) throw new Error(invalidListener);
     // Return no-operation if already subscribed
     if (isSubscribed(listener, this.subscribers)) return noOp;
-    this.subscribers.push(listener);
 
     const k = key.toString();
-    const exit = () => {
-      listener(this.state, [k]);
-      subscription.unsubscribe();
-    };
+    const subscription = from(this.subject)
+      .pipe(
+        filter((val) => {
+          if (!val[1].includes(k)) return false;
+          return expectValue ? expectValue(val[0][k]) : true;
+        }),
+        take(1)
+      )
+      .subscribe({
+        next(vals) {
+          // Exit if the key hasn't been updated
+          const [state, updated] = vals;
+          if (!updated.includes(k)) return;
 
-    const subscription = this.subject.subscribe({
-      next(vals) {
-        const [state, updated] = vals;
-        // Exit if the key hasn't been updated
-        if (!updated.includes(k)) return;
-        // Trigger the listener if the key was updated
-        if (!expectValue) return exit();
-        // Trigger the listener if the updated value matches listener's expectations
-        if (expectValue(state[k])) return exit();
-      },
-    });
+          // Trigger the listener if the key was updated
+          if (!expectValue || expectValue(state[k])) {
+            subscription.unsubscribe();
+            return listener(state, [k]);
+          }
+        },
+      });
 
-    return subscription.unsubscribe;
+    return this.handleUnsubscription(subscription, listener);
   }
 
   /**
@@ -157,10 +176,10 @@ class _ApplicationStore {
    * @param listener Listener function
    * @param keys List of state keys to "watch" for updates
    * @param valueCheck Optional function to assert the value of `key` when it updates.
-   * @returns {Unsubscriber} Unsubscribe function
+   * @returns Unsubscribe function
    */
   subscribeToKeys(
-    listener: ListenerFn,
+    listener: ListenerFn<ApplicationState>,
     keys: string[],
     valueCheck = (k: string, v: any) => true
   ): Unsubscriber {
@@ -168,34 +187,39 @@ class _ApplicationStore {
     if (invalidListener) throw new Error(invalidListener);
 
     // construct a custom subscriber
-    const keysListener = (s: Partial<ApplicationState>, k: string[]) => {
-      // Create a new list of updated keys (subset for listener)
-      const updatedKeys: string[] = [];
-      const u: Partial<ApplicationState> = keys.reduce((agg, key) => {
-        // Copy updated values that appear in the `keys` list and assert value
-        if (k.includes(key) && valueCheck(key, s[key])) {
-          updatedKeys.push(key);
-          return { ...agg, [key]: s[key] };
-        }
+    const subscription = from(this.subject)
+      .pipe(
+        filter(([s, updatedKeys]) => {
+          const hasRelevantKeys = updatedKeys.some((uk) => keys.includes(uk));
+          return hasRelevantKeys;
+        }),
+        map(([s, updatedKeys]) => {
+          // Copy updated values that appear in the `keys` list
+          const rKeys: string[] = updatedKeys.filter((k) => keys.includes(k));
+          const newState = rKeys.reduce((agg: StateObject, key: string) => {
+            const matches = valueCheck(key, s[key]);
+            return matches ? { ...agg, [key]: s[key] } : agg;
+          }, {});
 
-        return agg;
-      }, {});
-
-      // Notify listener if there are updates to be made
-      if (updatedKeys.length) listener(u, updatedKeys);
-    };
+          return [newState, rKeys];
+        })
+      )
+      .subscribe((vals) => {
+        const [updated, updatedKeys] = vals as StateUpdate;
+        if (Object.keys(updated).length === 0) return;
+        listener(updated, updatedKeys);
+      });
 
     // return an unsubscribe function
-    return this.subscribe(keysListener);
+    return this.handleUnsubscription(subscription, listener);
   }
 
   /**
    * @private Update the instance with changes, then notify subscribers with a copy
    */
   private updateState(updated: ApplicationState, updatedKeys: string[] = []) {
-    this.state = updated;
-    const copy = { ...updated };
-    this.subject.next([copy, updatedKeys]);
+    this.state = { ...updated };
+    this.subject.next([updated, updatedKeys]);
   }
 }
 
@@ -204,12 +228,12 @@ class _ApplicationStore {
  * @param listener Listener function parameter
  * @returns Boolean assertion
  */
-function isSubscribed(listener: ListenerFn, subscribers: ListenerFn[]) {
-  const stringscribers = subscribers.map((f) => f.toString());
-  const serialized = listener.toString();
-  const matchSerialized = stringscribers.includes(serialized);
+function isSubscribed(
+  listener: ListenerFn<ApplicationState>,
+  subscribers: ListenerFn<ApplicationState>[]
+) {
   const matchListener = subscribers.includes(listener);
-  return matchSerialized && matchListener;
+  return matchListener;
 }
 
 /**
@@ -217,7 +241,9 @@ function isSubscribed(listener: ListenerFn, subscribers: ListenerFn[]) {
  * @param listener Listener function parameter
  * @returns {string|null} Error message or `null` if param is valid
  */
-function validateListener(listener: ListenerFn): string | null {
+function validateListener(
+  listener: ListenerFn<ApplicationState>
+): string | null {
   // This better be a function. Or Else.
   return typeof listener !== "function"
     ? `Invalid listener: '${typeof listener}' is not a function`

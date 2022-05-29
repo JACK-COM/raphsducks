@@ -2,7 +2,7 @@
   "name": "@jackcom/raphsducks",
   "version": "2.0.0",
   "description": "A lightweight pubsub (publish-subscribe) state manager.",
-  "main": "lib/bundle.js",
+  "main": "lib/index.js",
   "keywords": [
     "state",
     "manager",
@@ -17,8 +17,8 @@
   },
   "license": "WTFPL",
   "scripts": {
-    "clean": "rm lib/bundle.js",
-    "build": "npm run clean && npx webpack --mode development",
+    "clean": "rm -rf lib/",
+    "build": "npm run clean && tsc",
     "test": "jest --watchAll --testTimeout=300000 --detectOpenHandles",
     "preview": "npm run build && npm pack && rm -rf *.tgz",
     "prepublish": "npm run build",

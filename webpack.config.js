@@ -15,7 +15,7 @@ const config = {
 
     path: path.resolve(__dirname, "lib"),
 
-    filename: "bundle.js",
+    filename: "index.js",
   },
 
   plugins: [new CleanWebpackPlugin()],
@@ -33,6 +33,8 @@ const config = {
   resolve: {
     extensions: [".tsx", ".ts", ".js"],
   },
+
+  devtool: "inline-source-map",
 };
 
 module.exports = config;

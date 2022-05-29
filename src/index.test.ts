@@ -46,17 +46,14 @@ describe("Application State Manager", () => {
   });
 
   it("Accepts only initialized properties", () => {
-    try {
-      // @ts-expect-error
-      DefaultState.invalid(true);
-    } catch (e) {
-      expect(e).toBeTruthy();
-    }
+    expect(() => DefaultState.invalid(true)).toThrow();
   });
 
   it("Updates multiple properties before notifying subscribers once", () => {
     const listener = jest.fn();
-    DefaultState.subscribe(listener);
+    expect(DefaultState.subscribers.length).toBe(0);
+    const unsub = DefaultState.subscribe(listener);
+    expect(DefaultState.subscribers.length).toBe(1);
 
     let st = DefaultState.getState();
     expect(st.someBoolean).toStrictEqual(false);
@@ -66,6 +63,9 @@ describe("Application State Manager", () => {
       someBoolean: true,
       todos: [1, 2, 4],
     });
+    unsub();
+    expect(DefaultState.subscribers.length).toBe(0);
+
     st = DefaultState.getState();
     expect(st.someBoolean).toStrictEqual(true);
     expect(st.todos.length).toBe(3);
@@ -76,9 +76,12 @@ describe("Application State Manager", () => {
     const listener = jest.fn();
     const uniqueListener = jest.fn();
     const notEvenListening = jest.fn();
-
-    DefaultState.subscribe(listener);
-    UniqueState.subscribe(uniqueListener);
+    const unDefa = DefaultState.subscribe(listener);
+    const unUniq = UniqueState.subscribe(uniqueListener);
+    const cleanup = () => {
+      unDefa();
+      unUniq();
+    };
 
     // Updates
     DefaultState.someBoolean(true);
@@ -88,17 +91,23 @@ describe("Application State Manager", () => {
     );
     expect(uniqueListener).not.toHaveBeenCalled();
     expect(notEvenListening).not.toHaveBeenCalled();
+    cleanup();
   });
 
   it("Subscribes a unique listener to state", () => {
     // Subscribe twice with the same function ref:
     const spy = jest.fn();
-    UniqueState.subscribe(spy);
-    UniqueState.subscribe(spy);
+    const sub1 = UniqueState.subscribe(spy);
+    const sub2 = UniqueState.subscribe(spy);
+    const cleanup = () => {
+      sub1();
+      sub2();
+    };
 
     // Assert only one subscriber in relevant statae
     UniqueState.someString("hello!!");
     expect(spy).toHaveBeenCalledTimes(1);
+    cleanup();
   });
 
   it("Subscribes a unique listener ONCE to state, then unsubscribes", () => {
@@ -128,7 +137,11 @@ describe("Application State Manager", () => {
     const spy = jest.fn();
 
     // Subscribe twice with the same function ref:
-    UniqueState.subscribeOnce(spy, "someBoolean", (a) => a === false);
+    const cleanup = UniqueState.subscribeOnce(
+      spy,
+      "someBoolean",
+      (a) => a === false
+    );
 
     // Update a different key
     UniqueState.todos([123]);
@@ -137,20 +150,25 @@ describe("Application State Manager", () => {
     // Update target key
     UniqueState.someBoolean(true);
     expect(UniqueState.getState().someBoolean).toStrictEqual(true);
-    // @ts-expect-error
     UniqueState.multiple({ someBoolean: null, todos: [] });
     expect(UniqueState.getState().someBoolean).toStrictEqual(null);
     expect(spy).not.toHaveBeenCalled();
 
     UniqueState.someBoolean(false);
     expect(UniqueState.getState().someBoolean).toStrictEqual(false);
-    expect(spy).toHaveBeenCalledTimes(1);
     // assert spy has been unsubscribed
+    cleanup();
+
+    UniqueState.someBoolean(false);
+    expect(UniqueState.getState().someBoolean).toStrictEqual(false);
+    UniqueState.someBoolean(true);
+    expect(UniqueState.getState().someBoolean).toStrictEqual(true);
+    expect(spy).toHaveBeenCalledTimes(1);
   });
 
   it("subscribes to a subset of keys", () => {
     const spy = jest.fn();
-    const unsubscribe = UniqueState.subscribeToKeys(spy, ["someString"]);
+    const cleanup = UniqueState.subscribeToKeys(spy, ["someString"]);
 
     UniqueState.someBoolean(false);
     expect(spy).not.toHaveBeenCalled();
@@ -161,6 +179,7 @@ describe("Application State Manager", () => {
     UniqueState.someString("hello");
     expect(spy).toHaveBeenCalledTimes(1);
     expect(spy).toHaveBeenCalledWith({ someString: "hello" }, ["someString"]);
+    cleanup();
   });
 
   it("subscribes to a subset of keys and expected values", () => {
@@ -168,7 +187,7 @@ describe("Application State Manager", () => {
     const key = "someString";
     const expected = "goodbye";
     const check = (k: string, v: any) => k === key && v === expected;
-    UniqueState.subscribeToKeys(spy, [key], check);
+    const cleanup = UniqueState.subscribeToKeys(spy, [key], check);
 
     UniqueState.someBoolean(false);
     expect(spy).not.toHaveBeenCalled();
@@ -189,22 +208,36 @@ describe("Application State Manager", () => {
     UniqueState.someString("goodbye");
     expect(spy).toHaveBeenCalledTimes(1);
     expect(spy).toHaveBeenCalledWith({ [key]: expected }, [key]);
+    cleanup();
   });
 
   it("Unsubscribes listeners from state instance", () => {
     // Test
     const stub = jest.fn();
     const poof = jest.fn();
-    UniqueState.subscribe(stub);
-    UniqueState.subscribe(poof);
-    // Control
-    DefaultState.subscribe(stub);
-    DefaultState.subscribe(poof);
+    const unsubs = [];
+    const cleanup = () => unsubs.forEach((sub) => sub());
+
+    unsubs.push(
+      UniqueState.subscribe(stub),
+      UniqueState.subscribe(poof),
+      // Control
+      DefaultState.subscribe(stub),
+      DefaultState.subscribe(poof)
+    );
+
     // start
     // trigger state change
     UniqueState.multiple({
       someBoolean: true,
       todos: [{ text: "Pet the cat", done: false }],
+    });
+
+    cleanup();
+    // trigger another state change
+    UniqueState.multiple({
+      someBoolean: true,
+      todos: [{ text: "Pets the cat", done: true }],
     });
     // assert subscribers were triggered
     expect(stub).toHaveBeenCalledTimes(1);
@@ -249,15 +282,16 @@ describe("Application State Manager", () => {
     };
 
     const spyScriber = jest.fn();
-    UniqueState.subscribe(spyScriber);
+    const cleanup = UniqueState.subscribe(spyScriber);
 
     // trigger state change
     UniqueState.multiple(updates);
     UniqueState.reset(true);
-    expect(spyScriber).toHaveBeenCalledTimes(1);
 
+    expect(spyScriber).toHaveBeenCalledTimes(1);
     expect(UniqueState.getState()).toStrictEqual(initialState);
     expect(DefaultState.getState()).toStrictEqual(initialState);
+    cleanup();
   });
 });
 
@@ -312,5 +346,6 @@ describe("Application State High Intensity", () => {
 
     // clear it all dammit. This test has earned itself a beer.
     isolated.reset(true);
+    cleanup()
   });
 });
