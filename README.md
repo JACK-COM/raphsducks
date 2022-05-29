@@ -16,8 +16,12 @@
     - [Updating your state instance](#updating-your-state-instance)
     - [Subscribing to your state instance](#subscribing-to-your-state-instance)
       - [Disposable (one-time) subscription](#disposable-one-time-subscription)
+        - [Ad-hoc, one-time subscription](#ad-hoc-one-time-subscription)
+        - [One-time subscription to a specific value](#one-time-subscription-to-a-specific-value)
   - [Reference](#reference)
     - [**createState**](#createstate)
+    - [**State Instance**](#state-instance)
+    - [**State Representation**](#state-representation)
     - [**ApplicationStore** (Class)](#applicationstore-class)
     - [`Listener Functions`](#listener-functions)
       - [Example Listener](#example-listener)
@@ -85,6 +89,8 @@ const store = createState(initialState);
 // (OPTIONAL) export for use in other parts of your app
 export default store;
 ```
+
+> <b style="color:#C63">Hint:</b> In typescript, a key initialized with `null` will *always* expect `null` as an update value. To prevent type assertion errors, make sure you initialize your keys with a corresponding type. (e.g. `{ p: [] as string[] }`)
   
 In the example above, both `todos` and `someOtherValue` will become functions on `store`. See [usage here](#updating-your-state-instance)
 
@@ -107,7 +113,7 @@ In the example above, both `todos` and `someOtherValue` will become functions on
 > createState<MyStateTypeDef>({ ... });
 > ```
 > 
-> 
+
 
 ---
 
@@ -155,17 +161,41 @@ const unsubscribe = store.subscribe((state, updatedKeys) => {
 unsubscribe();
 ```
 
-There are other ways to subscribe to your state instance.
+`state.subscribe()` is a great way to listen to *every change* that happens to your state. However, you will typically have to check the updated object to see if it has any values you want.\
+Luckily there are other ways to subscribe to your state instance. These alternatives only notify when something you care about gets updated. Some of them allow you to even specify what *values* you want to return. 
 
 #### Disposable (one-time) subscription
-You can listen to your state until a single
+Use [`subscribeOnce`](#applicationstore-class) to listen to your state until a single value is updated (or just until the next state update happens), then auto-unsubscribe.\
 
-> <b style="color:#C03">Important!</b> To prevent type assertion errors, make sure you initialize your keys with a corresponding type. (i.e. a key initialized with `null` will *always* expect `null` as an update value)
+> **Hint:** the `listener` handler is the same in all `subscribe` functions. It always accepts two arguments: the updated `state` object-literal, and a list of keys that were just updated.
+
+##### Ad-hoc, one-time subscription
+You can wait for the next state update to trigger something else.
+```typescript
+const unsubscribe = store.subscribeOnce(() => {
+    doSomethingElse();
+});
+
+// Cancel the trigger by unsubscribing:
+unsubscribe(); // 'doSomethingElse' won't get called.
+```
+
+##### One-time subscription to a specific value
+Listen until a specific item gets updated, then use it. The value is guaranteed to be on the updated state object. We'll use `state.todos` in our example.
+```typescript
+const unsubscribe = store.subscribeOnce((state) => {
+    const todos = state.todos;
+    doSomethingElse(todos);
+}, 'todos');
+
+// Cancel the state-update trigger by unsubscribing:
+unsubscribe(); // 'doSomethingElse' won't get called.
+```
 
 ---
 ## Reference
 ### **createState**
-* Default Library export: Creates a new `state`  using the supplied initial state. Parameters:
+* Default Library export. Creates a new `state` instance using the supplied initial state. Parameters:
   * **Args**: An object-literal representing every key and initial/default value for your global state.
   * **API**:
     ```typescript
@@ -173,7 +203,17 @@ You can listen to your state until a single
     ```
   * **Returns**: a [state instance](#applicationstore-class "Application Store class"). 
 
+---
 
+### **State Instance**
+An instance of [`ApplicationStore`](#applicationstore-class) with full subscription capability. This is distinct from your [***state representation***](#state-representation).
+
+---
+
+### **State Representation**
+A plain JS object literal that you pass into `createState`. This object, for all intents and purposes, *is* your state, though you will use [`ApplicationStore`](#applicationstore-class) to interact with it. 
+
+---
 
 ### **ApplicationStore** (Class)
 
@@ -188,27 +228,31 @@ You can listen to your state until a single
         
         subscribe(listener: ListenerFn): Unsubscriber;
         
-        subscribeOnce(
+        subscribeOnce<K extends keyof ApplicationState>(
             listener: ListenerFn,
-            key: string,
-            valueCheck?: (some: any) => boolean
+            key?: K,
+            valueCheck?: (some: ApplicationState[K]) => boolean
         ): void;
 
-        subscribeToKeys(
+        subscribeToKeys<K extends keyof ApplicationState>(
             listener: ListenerFn,
-            keys: string[],
-            valueCheck?: (key: string, expectedValue: any) => boolean
+            keys: K[],
+            valueCheck?: (key: K, expectedValue: any) => boolean
         ): Unsubscriber;
 
         // This represents any key in the object passed into 'createState'
         [x: string]: StoreUpdaterFn | any;
     }
     ```
+
+---
+
 ### `Listener Functions`
 A `listener` is a function that reacts to state updates. It expects one or two arguments: 
 * `state: { [x:string]: any }`: the updated `state` object. 
 * `updatedItems: string[]`: a list of keys (`state` object properties) that were just updated. 
 
+---
 
 #### Example Listener
 A basic Listener receives the updated application state, and the names of any changed properties, as below:
@@ -235,9 +279,12 @@ This is a purely in-memory state manager: it does NOT
 * Prevent you from implementing any additional storage mechanisms
 * Conflict with any other state managers
 
-## Deprecated Versions
+---
 
+## Deprecated Versions
 Looking for something? Some items may be in [`v.0.5.x` documentation](/README-v-0XX.md), if you can't find them here. Please note that any version below `1.X.X` is very extremely unsupported, and may elicit sympathetic looks and "tsk" noises.
+
+---
 
 ### Migrating from `v1x` to `v2x`
 Although not exactly "deprecated", `v1.X.X` will receive reduced support as of June 2022. It is recommended that you upgrade to the `v2.X.X` libraryas soon as possible. The migration should be as simple as running `npm i @jackcom/raphsducks@latest`, since the underlying API has not changed. 
@@ -251,11 +298,15 @@ Although not exactly "deprecated", `v1.X.X` will receive reduced support as of J
 _Raphsducks_ is a very lightweight library that mainly allows you to instantiate a global state and subscribe to changes made to it, or subsets of it.\
 You can think of it as a light cross between [Redux](https://www.npmjs.com/package/redux) and [PubSub](https://www.npmjs.com/package/pubsub-js). Or imagine those two libraries got into a fight in a cloning factory, and some of their DNA got mixed in one of those vats of mystery goo that clones things. 
 
+---
+
 ### How is it similar to Redux?
 * You can define a unique, shareable, subscribable Application State
 * Uses a `createState` function helper for instantiating the state
 * Uses `getState`, and `subscribe` methods (for getting a copy of current state, and listening to updates).
   * `subscribe` even returns an unsubscribe function!
+
+---
 
 ### How is it different from Redux?
 * No `Actions`.
