@@ -1,4 +1,4 @@
-import { filter, from, map, Subject, Subscription, take } from "rxjs";
+import { filter, from, map, Subject, Subscription } from "rxjs";
 import { ApplicationState, ListenerFn, Store, Unsubscriber } from "./types";
 
 const noOp = () => {};
@@ -13,13 +13,13 @@ export type StateUpdate = [ApplicationState, string[]];
 class _ApplicationStore {
   [x: string]: any;
 
-  private subject: Subject<StateUpdate> = new Subject();
+  private subject: Subject<StateUpdate>;
 
   /** Hold all subscriptions for one-shot reset */
   private allSubscriptions: Subscription;
 
   /** Subscribers/Listeners that are called when the state changes */
-  subscribers: ListenerFn<ApplicationState>[] = [];
+  subscribers: ListenerFn<ApplicationState>[];
 
   /** @private Copy of original state args */
   private ref: ApplicationState | null = null;
@@ -37,12 +37,14 @@ class _ApplicationStore {
     // Initialize application source-of-truth
     this.state = { ...state };
     this.ref = Object.freeze(state);
+    this.subject = new Subject();
+    this.subscribers = [];
     this.allSubscriptions = this.subject.subscribe({ next() {} });
 
     // Turn every key in the `state` representation into a method on the instance.
     for (let key in state) {
       const updater = (value: any = null): void => {
-        const updated = { ...this.state, [key]: value };
+        const updated = Object.assign({}, this.state, { [key]: value });
         return this.updateState(updated, [key]);
       };
 
@@ -114,13 +116,17 @@ class _ApplicationStore {
 
   private handleUnsubscription(
     subscription: Subscription,
-    listener: ListenerFn<ApplicationState>
+    listener?: ListenerFn<ApplicationState>
   ) {
-    this.subscribers.push(listener);
-    this.allSubscriptions.add(subscription);
+    if (listener) {
+      this.allSubscriptions.add(subscription);
+      this.subscribers.push(listener);
+    }
 
     return () => {
       subscription.unsubscribe();
+      if (!listener) return;
+      this.allSubscriptions.remove(subscription);
       this.subscribers = this.subscribers.filter((l) => l !== listener);
     };
   }
@@ -137,38 +143,42 @@ class _ApplicationStore {
    */
   subscribeOnce<K extends keyof ApplicationState>(
     listener: ListenerFn<ApplicationState>,
-    key: K,
+    key?: K,
     expectValue?: (val: ApplicationState[K]) => boolean
   ): Unsubscriber {
     const invalidListener = validateListener(listener);
     if (invalidListener) throw new Error(invalidListener);
-    // Return no-operation if already subscribed
-    if (isSubscribed(listener, this.subscribers)) return noOp;
 
-    const k = key.toString();
+    const k = (key || "").toString();
     const subscription = from(this.subject)
       .pipe(
         filter((val) => {
-          if (!val[1].includes(k)) return false;
-          return expectValue ? expectValue(val[0][k]) : true;
-        }),
-        take(1)
+          const match = k === "" || val[1].includes(k);
+          return match || (expectValue ? expectValue(val[0][k]) : true);
+        })
       )
       .subscribe({
-        next(vals) {
-          // Exit if the key hasn't been updated
+        next: (vals) => {
           const [state, updated] = vals;
-          if (!updated.includes(k)) return;
+          // Exit if key was not updated, or does not have an expected value
+          const wasUpdated = !key || updated.includes(k);
+          const isExpected = !expectValue || expectValue(state[k]);
+          const notify = wasUpdated && isExpected;
 
-          // Trigger the listener if the key was updated
-          if (!expectValue || expectValue(state[k])) {
-            subscription.unsubscribe();
+          // Trigger the listener
+          if (notify) {
+            unsubscribeListener();
             return listener(state, [k]);
           }
         },
       });
 
-    return this.handleUnsubscription(subscription, listener);
+    const unsubscriber = this.handleUnsubscription(subscription);
+    return unsubscribeListener;
+
+    function unsubscribeListener() {
+      unsubscriber();
+    }
   }
 
   /**

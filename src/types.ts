@@ -40,13 +40,13 @@ export type Store<S> = {
    * It creates a new subscriber that triggers the listener when `key` is updated, and/or
    * when the value of `key` passes the `valueCheck` function (if one is supplied).
    * @param listener Listener function
-   * @param key Key to check for updates
+   * @param key Optional Key to check for updates
    * @param valueCheck Optional function to assert the value of `key` when it updates.
    * @returns {Unsubscriber} Unsubscribe function
    */
   subscribeOnce<K extends keyof S>(
     listener: ListenerFn<Partial<S>>,
-    key: K,
+    key?: K,
     valueCheck?: (some: S[K]) => boolean
   ): Unsubscriber;
 

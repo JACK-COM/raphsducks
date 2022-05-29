@@ -112,8 +112,15 @@ describe("Application State Manager", () => {
 
   it("Subscribes a unique listener ONCE to state, then unsubscribes", () => {
     const spy = jest.fn();
+    const unique = jest.fn();
     // Subscribe twice with the same function ref:
-    UniqueState.subscribeOnce(spy, "someBoolean");
+    const u1 = UniqueState.subscribeOnce(unique);
+    const u2 = UniqueState.subscribeOnce(spy, "someBoolean");
+    const cleanup = () => {
+      u1();
+      u2();
+      expect(UniqueState.subscribers.length).toBe(0);
+    };
 
     // Update a different key
     UniqueState.todos([123]);
@@ -130,7 +137,9 @@ describe("Application State Manager", () => {
     expect(UniqueState.getState().someBoolean).toStrictEqual(true);
 
     // assert spy has been unsubscribed
+    expect(unique).toHaveBeenCalledTimes(1);
     expect(spy).toHaveBeenCalledTimes(1);
+    cleanup();
   });
 
   it("Subscribes ONCE until a value is received, then unsubscribes", () => {
@@ -346,6 +355,6 @@ describe("Application State High Intensity", () => {
 
     // clear it all dammit. This test has earned itself a beer.
     isolated.reset(true);
-    cleanup()
+    cleanup();
   });
 });
