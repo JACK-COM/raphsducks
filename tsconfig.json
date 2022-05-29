@@ -1,16 +1,23 @@
 {
   "compilerOptions": {
     "allowJs": true,
+    "declaration": true,
     "downlevelIteration": true,
     "esModuleInterop": true,
-    "module": "esnext",
+    "lib": ["ESNext"],
+    "module": "commonJs",
     "moduleResolution": "node",
     "noImplicitAny": true,
     "noImplicitReturns": true,
-    "outDir": "./dist/",
-    "sourceMap": true,
+    "noUnusedLocals": true,
+    "outDir": "./lib/",
+    "resolveJsonModule": true,
+    "sourceMap": false,
     "strict": true,
-    "target": "es5"
+    "stripInternal": true,
+    "target": "es5",
+    "useDefineForClassFields": true
   },
-  "include": ["./src/**/*"]
+  "include": ["./src/**/*"],
+  "exclude": ["./node_modules", "./lib", "./**/*.test.*"]
 }

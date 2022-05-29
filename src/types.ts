@@ -1,32 +1,38 @@
-/** Initial state argument */
-type ApplicationState = {
+/**  Initial state argument */
+export type ApplicationState = {
   [k: string]: any | any[] | null;
 };
 
-/** State instance */
-type Store<T> = {
-
-  /** @private property: list of subscribers */
-  subscribers: ListenerFn[]
+/**
+ * A state representation. Each key in the state is a method for updating
+ * that state property. (e.g. `state.users` = ApplicationStore.users( ... ))
+ */
+export type Store<S> = {
+  [x: string]: ((v: any) => void) | any;
 
   /** Get [a copy of] the current application state */
-  getState(): T;
+  getState(): S;
 
-  /** Update multiple keys in state before notifying subscribers. */
-  multiple(changes: Partial<T>): void;
+  /**
+   * Update multiple items in state before notifying subscribers.
+   * @param changes A key-value object that represets a subset of your state.
+   */
+  multiple(changes: Partial<S>): void;
 
   /**
    * Reset the instance to its initialized state while preserving subscribers.
    * Pass 'true' into the function to also remove all state subscribers.
+   * @param clearSubscribers Boolean; when true, `reset` will remove all
+   * existing subscribers to state.
    */
   reset(clearSubscribers?: boolean): void;
 
   /**
    * Subscribe to the state instance. Returns an `unsubscribe` function
    * @param listener Listener function
-   * @returns {Unsubscriber} Unsubscribe function
+   * @returns {() => void} Unsubscribe function
    */
-  subscribe(listener: ListenerFn): Unsubscriber;
+  subscribe(listener: ListenerFn<Partial<S>>, x?: boolean): Unsubscriber;
 
   /**
    * Subscribe until a specified `key` is updated, then unsubscribe. Optionally takes
@@ -34,14 +40,14 @@ type Store<T> = {
    * It creates a new subscriber that triggers the listener when `key` is updated, and/or
    * when the value of `key` passes the `valueCheck` function (if one is supplied).
    * @param listener Listener function
-   * @param key Key to check for updates
+   * @param key Optional Key to check for updates
    * @param valueCheck Optional function to assert the value of `key` when it updates.
    * @returns {Unsubscriber} Unsubscribe function
    */
-  subscribeOnce<K extends keyof T>(
-    listener: ListenerFn,
-    key: K,
-    valueCheck?: (some: T[K]) => boolean
+  subscribeOnce<K extends keyof S>(
+    listener: ListenerFn<Partial<S>>,
+    key?: K,
+    valueCheck?: (some: S[K]) => boolean
   ): Unsubscriber;
 
   /**
@@ -52,20 +58,17 @@ type Store<T> = {
    * @returns {Unsubscriber} Unsubscribe function
    */
   subscribeToKeys(
-    listener: ListenerFn,
-    keys: string[],
+    listener: ListenerFn<Partial<S>>,
+    keys: Partial<keyof S>[] | string[],
     valueCheck?: (key: string, expectedValue: any) => boolean
   ): Unsubscriber;
-} & { [k in keyof T]: StoreUpdaterFn<T[k]> };
+} & { [k in keyof S]: (u: S[k]) => void };
 
 /** Function for updating a state key */
-type StoreUpdaterFn<T> = { (value: T): void };
+export type StoreUpdaterFn<T> = { (value: T): void };
 
-/** State Listeners are functions that are called when the state changes */
-type ListenerFn = {
-  (state: ApplicationState, updatedKeys: string[]): void;
-};
+/** Receives the updated state and a list of keys */
+export type ListenerFn<V> = { (state: V, updatedKeys: string[]): void };
 
-type Unsubscriber = {
-  (): void;
-};
+/** Unsubscribes a listener from the state */
+export type Unsubscriber = { (): void };
