@@ -1,10 +1,11 @@
-# Raph's Ducks v.1.x.x
+# Raph's Ducks v2
 
 > **UPDATES:** 
 > * Version `1.x.x` simplifies the library and introduces breaking changes.
 > If you're looking for the old documentation [look here](/README-v-0XX.md). And, let me say,
 > I am _so sorry_ you ever had to deal with the old library.
-> * Version `1.1.x` adds typescript support, and a new `subscribeOnce` function (see below)
+> * Version `1.1.x` adds `typescript` support, and a new `subscribeOnce` function (see below)
+> * Version `2.0.0` adds `rxjs` under the hood
 
 ## Table Of Contents
 * [What is it?](#what-is-it)
