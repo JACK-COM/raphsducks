@@ -10,9 +10,16 @@ const DefaultState = createState(initialState);
 const UniqueState = createState(initialState);
 
 describe("Application State Manager", () => {
+  beforeEach(() => {});
+
   afterEach(() => {
     DefaultState.reset();
     UniqueState.reset();
+  });
+
+  afterAll(() => {
+    DefaultState.reset(true);
+    UniqueState.reset(true);
   });
 
   it("Initializes state with defined properties and default values", () => {
@@ -40,6 +47,7 @@ describe("Application State Manager", () => {
 
   it("Accepts only initialized properties", () => {
     try {
+      // @ts-expect-error
       DefaultState.invalid(true);
     } catch (e) {
       expect(e).toBeTruthy();
@@ -48,22 +56,31 @@ describe("Application State Manager", () => {
 
   it("Updates multiple properties before notifying subscribers once", () => {
     const listener = jest.fn();
-    const unsubscribe = DefaultState.subscribe(listener);
+    DefaultState.subscribe(listener);
+
+    let st = DefaultState.getState();
+    expect(st.someBoolean).toStrictEqual(false);
+    expect(st.todos.length).toBe(0);
+
     DefaultState.multiple({
       someBoolean: true,
       todos: [1, 2, 4],
     });
+    st = DefaultState.getState();
+    expect(st.someBoolean).toStrictEqual(true);
+    expect(st.todos.length).toBe(3);
     expect(listener).toHaveBeenCalledTimes(1);
-    unsubscribe();
   });
 
   it("Notifies only listeners subscribed to its instance", () => {
     const listener = jest.fn();
     const uniqueListener = jest.fn();
     const notEvenListening = jest.fn();
-    const unsub1 = DefaultState.subscribe(listener);
-    const unsub2 = UniqueState.subscribe(uniqueListener);
-    //
+
+    DefaultState.subscribe(listener);
+    UniqueState.subscribe(uniqueListener);
+
+    // Updates
     DefaultState.someBoolean(true);
     expect(listener).toHaveBeenCalledWith(
       { ...initialState, someBoolean: true },
@@ -71,37 +88,23 @@ describe("Application State Manager", () => {
     );
     expect(uniqueListener).not.toHaveBeenCalled();
     expect(notEvenListening).not.toHaveBeenCalled();
-
-    // cleanup
-    unsub1!();
-    unsub2!();
   });
 
   it("Subscribes a unique listener to state", () => {
-    // Assert no listeners
-    expect(UniqueState.subscribers.length).toBe(0);
-    expect(DefaultState.subscribers.length).toBe(0);
     // Subscribe twice with the same function ref:
-    const unsubscribe1 = UniqueState.subscribe(jest.fn);
-    const unsubscribe2 = UniqueState.subscribe(jest.fn);
+    const spy = jest.fn();
+    UniqueState.subscribe(spy);
+    UniqueState.subscribe(spy);
 
     // Assert only one subscriber in relevant statae
-    expect(UniqueState.subscribers.length).toBe(1);
-    expect(DefaultState.subscribers.length).toBe(0);
-
-    // cleanup
-    unsubscribe1!();
+    UniqueState.someString("hello!!");
+    expect(spy).toHaveBeenCalledTimes(1);
   });
 
   it("Subscribes a unique listener ONCE to state, then unsubscribes", () => {
-    // Assert no listeners
-    expect(UniqueState.subscribers.length).toBe(0);
-    expect(DefaultState.subscribers.length).toBe(0);
-
     const spy = jest.fn();
     // Subscribe twice with the same function ref:
     UniqueState.subscribeOnce(spy, "someBoolean");
-    expect(UniqueState.subscribers.length).toBe(1);
 
     // Update a different key
     UniqueState.todos([123]);
@@ -109,24 +112,23 @@ describe("Application State Manager", () => {
 
     // Update target key
     UniqueState.someBoolean(true);
+    expect(UniqueState.getState().someBoolean).toStrictEqual(true);
+
     UniqueState.someBoolean(false);
+    expect(UniqueState.getState().someBoolean).toStrictEqual(false);
+
+    UniqueState.someBoolean(true);
+    expect(UniqueState.getState().someBoolean).toStrictEqual(true);
 
     // assert spy has been unsubscribed
     expect(spy).toHaveBeenCalledTimes(1);
-    expect(UniqueState.subscribers.length).toBe(0);
   });
 
   it("Subscribes ONCE until a value is received, then unsubscribes", () => {
-    // Assert no listeners
-    expect(UniqueState.subscribers.length).toBe(0);
-    expect(DefaultState.subscribers.length).toBe(0);
-
     const spy = jest.fn();
 
     // Subscribe twice with the same function ref:
-    UniqueState.subscribeOnce(spy, "someBoolean", (a: boolean) => a === false);
-    expect(UniqueState.subscribers.length).toBe(1);
-    expect(DefaultState.subscribers.length).toBe(0);
+    UniqueState.subscribeOnce(spy, "someBoolean", (a) => a === false);
 
     // Update a different key
     UniqueState.todos([123]);
@@ -134,18 +136,19 @@ describe("Application State Manager", () => {
 
     // Update target key
     UniqueState.someBoolean(true);
+    expect(UniqueState.getState().someBoolean).toStrictEqual(true);
+    // @ts-expect-error
     UniqueState.multiple({ someBoolean: null, todos: [] });
+    expect(UniqueState.getState().someBoolean).toStrictEqual(null);
     expect(spy).not.toHaveBeenCalled();
 
     UniqueState.someBoolean(false);
-
-    // assert spy has been unsubscribed
+    expect(UniqueState.getState().someBoolean).toStrictEqual(false);
     expect(spy).toHaveBeenCalledTimes(1);
-    expect(UniqueState.subscribers.length).toBe(0);
+    // assert spy has been unsubscribed
   });
 
   it("subscribes to a subset of keys", () => {
-    expect(UniqueState.subscribers.length).toBe(0);
     const spy = jest.fn();
     const unsubscribe = UniqueState.subscribeToKeys(spy, ["someString"]);
 
@@ -158,69 +161,54 @@ describe("Application State Manager", () => {
     UniqueState.someString("hello");
     expect(spy).toHaveBeenCalledTimes(1);
     expect(spy).toHaveBeenCalledWith({ someString: "hello" }, ["someString"]);
-    unsubscribe();
   });
 
   it("subscribes to a subset of keys and expected values", () => {
-    expect(UniqueState.subscribers.length).toBe(0);
     const spy = jest.fn();
     const key = "someString";
     const expected = "goodbye";
     const check = (k: string, v: any) => k === key && v === expected;
-    const unsubscribe = UniqueState.subscribeToKeys(spy, [key], check);
+    UniqueState.subscribeToKeys(spy, [key], check);
 
     UniqueState.someBoolean(false);
     expect(spy).not.toHaveBeenCalled();
-    
+
     UniqueState.todos([1, 2, 3, 4, 5]);
     expect(spy).not.toHaveBeenCalled();
-    
+
     UniqueState.someString("hello");
     expect(spy).not.toHaveBeenCalled();
-    
+
     UniqueState.multiple({
       someString: key,
       todos: [5, 4, 3, 2, 1],
       someBoolean: true,
     });
     expect(spy).not.toHaveBeenCalled();
-    
+
     UniqueState.someString("goodbye");
     expect(spy).toHaveBeenCalledTimes(1);
     expect(spy).toHaveBeenCalledWith({ [key]: expected }, [key]);
-    unsubscribe();
   });
 
   it("Unsubscribes listeners from state instance", () => {
     // Test
     const stub = jest.fn();
     const poof = jest.fn();
-    const unsubscribe1 = UniqueState.subscribe(stub);
-    const unsubscribe2 = UniqueState.subscribe(poof);
+    UniqueState.subscribe(stub);
+    UniqueState.subscribe(poof);
     // Control
-    const unsubscribe1A = DefaultState.subscribe(stub);
-    const unsubscribe2A = DefaultState.subscribe(poof);
+    DefaultState.subscribe(stub);
+    DefaultState.subscribe(poof);
     // start
-    expect(UniqueState.subscribers.length).toBe(2);
-    expect(DefaultState.subscribers.length).toBe(2);
     // trigger state change
     UniqueState.multiple({
       someBoolean: true,
       todos: [{ text: "Pet the cat", done: false }],
     });
     // assert subscribers were triggered
-    expect(stub).toHaveBeenCalled();
-    expect(poof).toHaveBeenCalled();
-    // unsubscribe the bastards
-    unsubscribe1();
-    unsubscribe2();
-
-    expect(UniqueState.subscribers.length).toBe(0);
-    expect(DefaultState.subscribers.length).toBe(2);
-    // cleanup
-    unsubscribe1A();
-    unsubscribe2A();
-    expect(DefaultState.subscribers.length).toBe(0);
+    expect(stub).toHaveBeenCalledTimes(1);
+    expect(poof).toHaveBeenCalledTimes(1);
   });
 
   it("Resets state instance to inception while preserving subscribers", () => {
@@ -261,7 +249,7 @@ describe("Application State Manager", () => {
     };
 
     const spyScriber = jest.fn();
-    const unsubscribe = UniqueState.subscribe(spyScriber);
+    UniqueState.subscribe(spyScriber);
 
     // trigger state change
     UniqueState.multiple(updates);
@@ -270,7 +258,59 @@ describe("Application State Manager", () => {
 
     expect(UniqueState.getState()).toStrictEqual(initialState);
     expect(DefaultState.getState()).toStrictEqual(initialState);
+  });
+});
 
-    unsubscribe();
+describe("Application State High Intensity", () => {
+  const initial = { count: 0 };
+  const isolated = createState(initial);
+  const unsubscribers = [];
+  // create listeners
+  let i = 0;
+  const limit = 100;
+  const control = {
+    lastOne() {},
+    listener: (state: any, k: string[]) => {
+      console.assert(state);
+      console.assert(k);
+    },
+  };
+  const controlSpy = jest.spyOn(control, "listener");
+  const lastSpy = jest.spyOn(control, "lastOne");
+
+  it(`Sets up a ${limit} jest spies update`, () => {
+    do {
+      // Subscribe 1000 spies 😧
+      unsubscribers.push(
+        i === limit - 1
+          ? isolated.subscribe(control.lastOne)
+          : isolated.subscribe(jest.fn())
+      );
+      i += 1;
+    } while (i < limit);
+    expect(unsubscribers.length).toStrictEqual(limit);
+    expect(isolated.subscribers.length).toStrictEqual(limit);
+    expect(i).toStrictEqual(limit);
+    expect(controlSpy).toHaveBeenCalledTimes(0);
+    expect(lastSpy).toHaveBeenCalledTimes(0);
+    i = 0;
+  });
+
+  it(`Handles a ${limit} jest spies update`, () => {
+    const cleanup = isolated.subscribe(control.listener);
+    // make changes
+    do {
+      const { count } = isolated.getState();
+      isolated.count(count + 1);
+      i += 1;
+    } while (i < limit * 10);
+    const { count: final } = isolated.getState();
+    expect(final).toStrictEqual(limit * 10);
+    expect(final).not.toStrictEqual(initial.count);
+    expect(controlSpy).toHaveBeenCalledTimes(final);
+    expect(lastSpy).toHaveBeenCalledTimes(final);
+
+    // clear it all dammit. This test has earned itself a beer.
+    isolated.reset(true);
   });
 });

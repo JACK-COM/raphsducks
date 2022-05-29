@@ -5,13 +5,15 @@ type ApplicationState = {
 
 /** State instance */
 type Store<T> = {
-  [x: string]: StoreUpdaterFn | any;
+
+  /** @private property: list of subscribers */
+  subscribers: ListenerFn[]
 
   /** Get [a copy of] the current application state */
-  getState(): ApplicationState;
+  getState(): T;
 
   /** Update multiple keys in state before notifying subscribers. */
-  multiple(changes: Partial<ApplicationState>): void;
+  multiple(changes: Partial<T>): void;
 
   /**
    * Reset the instance to its initialized state while preserving subscribers.
@@ -54,10 +56,10 @@ type Store<T> = {
     keys: string[],
     valueCheck?: (key: string, expectedValue: any) => boolean
   ): Unsubscriber;
-} & { [k in keyof T]: StoreUpdaterFn };
+} & { [k in keyof T]: StoreUpdaterFn<T[k]> };
 
 /** Function for updating a state key */
-type StoreUpdaterFn = { (value?: any): void };
+type StoreUpdaterFn<T> = { (value: T): void };
 
 /** State Listeners are functions that are called when the state changes */
 type ListenerFn = {
