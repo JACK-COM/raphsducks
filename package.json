@@ -18,8 +18,9 @@
   "license": "WTFPL",
   "scripts": {
     "clean": "rm -rf lib/",
-    "build": "npm run clean && tsc",
-    "deploy": "npm run build && make compress && npm pack && npm run publish",
+    "build": "npm run clean && tsc && make compress",
+    "deploy": "npm run build && npm pack && npm publish",
+    "deploy:black": "npm run build && npm pack && npm publish --tag black",
     "test": "jest --watchAll --testTimeout=300000 --detectOpenHandles",
     "preview": "npm run build && npm pack && rm -rf *.tgz",
     "prepublish": "npm run build",
