@@ -19,6 +19,7 @@
   "scripts": {
     "clean": "rm -rf lib/",
     "build": "npm run clean && tsc",
+    "deploy": "npm run build && make compress && npm pack && npm run publish",
     "test": "jest --watchAll --testTimeout=300000 --detectOpenHandles",
     "preview": "npm run build && npm pack && rm -rf *.tgz",
     "prepublish": "npm run build",
