@@ -19,7 +19,10 @@ class _ApplicationStore {
   private allSubscriptions: Subscription;
 
   /** Subscribers/Listeners that are called when the state changes */
-  subscribers: ListenerFn<ApplicationState>[];
+  private _subscribers: Set<ListenerFn<ApplicationState>>;
+
+  /** Subscribers/Listeners that are called when the state changes */
+  subscribers: { length: number };
 
   /** @private Copy of original state args */
   private ref: ApplicationState | null = null;
@@ -38,7 +41,8 @@ class _ApplicationStore {
     this.state = { ...state };
     this.ref = Object.freeze(state);
     this.subject = new Subject();
-    this.subscribers = [];
+    this.subscribers = { length: 0 };
+    this._subscribers = new Set();
     this.allSubscriptions = this.subject.subscribe({ next() {} });
 
     // Turn every key in the `state` representation into a method on the instance.
@@ -102,32 +106,38 @@ class _ApplicationStore {
     if (invalidListener) throw new Error(invalidListener);
 
     // Return no-operation if already subscribed
-    if (isSubscribed(listener, this.subscribers)) return noOp;
+    if (this._subscribers.has(listener)) return noOp;
 
     const subscription = this.subject.subscribe({
       next: (vals) => {
         const [updatedState, updatedKeys] = vals;
         listener(updatedState, updatedKeys);
-      },
+      }
     });
 
-    return this.handleUnsubscription(subscription, listener);
+    return this.handleSubscription(subscription, listener);
   }
 
-  private handleUnsubscription(
+  private handleSubscription(
     subscription: Subscription,
     listener?: ListenerFn<ApplicationState>
-  ) {
+  ): Unsubscriber {
+    let addedListener = false;
+
     if (listener) {
       this.allSubscriptions.add(subscription);
-      this.subscribers.push(listener);
+      const size = this._subscribers.size;
+      this._subscribers.add(listener);
+      addedListener = this._subscribers.size > size;
+      if (addedListener) this.subscribers.length = this._subscribers.size;
     }
 
     return () => {
       subscription.unsubscribe();
-      if (!listener) return;
+      if (!listener || !addedListener) return;
       this.allSubscriptions.remove(subscription);
-      this.subscribers = this.subscribers.filter((l) => l !== listener);
+      this._subscribers.delete(listener);
+      this.subscribers.length = this._subscribers.size;
     };
   }
 
@@ -170,10 +180,10 @@ class _ApplicationStore {
             unsubscribeListener();
             return listener(state, [k]);
           }
-        },
+        }
       });
 
-    const unsubscriber = this.handleUnsubscription(subscription);
+    const unsubscriber = this.handleSubscription(subscription);
     return unsubscribeListener;
 
     function unsubscribeListener() {
@@ -221,7 +231,7 @@ class _ApplicationStore {
       });
 
     // return an unsubscribe function
-    return this.handleUnsubscription(subscription, listener);
+    return this.handleSubscription(subscription, listener);
   }
 
   /**
@@ -231,19 +241,6 @@ class _ApplicationStore {
     this.state = { ...updated };
     this.subject.next([updated, updatedKeys]);
   }
-}
-
-/**
- * Assert a listener is not in fact subscribed
- * @param listener Listener function parameter
- * @returns Boolean assertion
- */
-function isSubscribed(
-  listener: ListenerFn<ApplicationState>,
-  subscribers: ListenerFn<ApplicationState>[]
-) {
-  const matchListener = subscribers.includes(listener);
-  return matchListener;
 }
 
 /**
@@ -261,9 +258,7 @@ function validateListener(
 }
 
 /** Passed ref for retaining type definitions */
-const ApplicationStore = _ApplicationStore as {
-  new <T>(s: T): Store<T>;
-};
+const ApplicationStore = _ApplicationStore as { new <T>(s: T): Store<T> };
 
 /** Create an `ApplicationStore` instance */
 type StateObject = Record<string, any>;
