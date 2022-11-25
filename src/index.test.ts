@@ -1,8 +1,9 @@
 import createState from "./index";
+import { Unsubscriber } from "./types";
 
 const initialState = {
   todos: [] as any[],
-  someBoolean: false,
+  someBoolean: false as boolean | null,
   someString: "",
 };
 // State Instances
@@ -224,7 +225,7 @@ describe("Application State Manager", () => {
     // Test
     const stub = jest.fn();
     const poof = jest.fn();
-    const unsubs = [];
+    const unsubs: Unsubscriber[] = [];
     const cleanup = () => unsubs.forEach((sub) => sub());
 
     unsubs.push(
@@ -307,10 +308,10 @@ describe("Application State Manager", () => {
 describe("Application State High Intensity", () => {
   const initial = { count: 0 };
   const isolated = createState(initial);
-  const unsubscribers = [];
+  const unsubscribers: Unsubscriber[] = [];
   // create listeners
   let i = 0;
-  const limit = 100;
+  const limit = 350;
   const control = {
     lastOne() {},
     listener: (state: any, k: string[]) => {
