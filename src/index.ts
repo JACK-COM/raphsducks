@@ -115,28 +115,27 @@ class _ApplicationStore {
       }
     });
 
-    return this.handleSubscription(subscription, listener);
+    return this.addSubscription(subscription, listener);
   }
 
-  private handleSubscription(
+  private addSubscription(
     subscription: Subscription,
     listener?: ListenerFn<ApplicationState>
   ): Unsubscriber {
-    let addedListener = false;
+    const unsub = () => subscription.unsubscribe();
+    if (!listener) return unsub;
 
-    if (listener) {
-      this.allSubscriptions.add(subscription);
-      const size = this._subscribers.size;
-      this._subscribers.add(listener);
-      addedListener = this._subscribers.size > size;
-      if (addedListener) this.subscribers.length = this._subscribers.size;
-    }
+    const size = this._subscribers.size;
+    this._subscribers.add(listener);
+    if (this._subscribers.size === size) return unsub;
+
+    this.allSubscriptions.add(subscription);
+    this.subscribers.length = this._subscribers.size;
 
     return () => {
-      subscription.unsubscribe();
-      if (!listener || !addedListener) return;
-      this.allSubscriptions.remove(subscription);
+      unsub();
       this._subscribers.delete(listener);
+      this.allSubscriptions.remove(subscription);
       this.subscribers.length = this._subscribers.size;
     };
   }
@@ -177,18 +176,13 @@ class _ApplicationStore {
 
           // Trigger the listener
           if (notify) {
-            unsubscribeListener();
+            subscription.unsubscribe();
             return listener(state, [k]);
           }
         }
       });
 
-    const unsubscriber = this.handleSubscription(subscription);
-    return unsubscribeListener;
-
-    function unsubscribeListener() {
-      unsubscriber();
-    }
+    return this.addSubscription(subscription);
   }
 
   /**
@@ -209,12 +203,12 @@ class _ApplicationStore {
     // construct a custom subscriber
     const subscription = from(this.subject)
       .pipe(
-        filter(([s, updatedKeys]) => {
-          const hasRelevantKeys = updatedKeys.some((uk) => keys.includes(uk));
-          return hasRelevantKeys;
-        }),
+        // find relevant updates
+        filter(([s, updatedKeys]) =>
+          updatedKeys.some((uk) => keys.includes(uk))
+        ),
+        // Copy updated values that appear in the `keys` list
         map(([s, updatedKeys]) => {
-          // Copy updated values that appear in the `keys` list
           const rKeys: string[] = updatedKeys.filter((k) => keys.includes(k));
           const newState = rKeys.reduce((agg: StateObject, key: string) => {
             const matches = valueCheck(key, s[key]);
@@ -225,13 +219,13 @@ class _ApplicationStore {
         })
       )
       .subscribe((vals) => {
+        if (Object.keys(vals[0]).length === 0) return;
         const [updated, updatedKeys] = vals as StateUpdate;
-        if (Object.keys(updated).length === 0) return;
         listener(updated, updatedKeys);
       });
 
     // return an unsubscribe function
-    return this.handleSubscription(subscription, listener);
+    return this.addSubscription(subscription, listener);
   }
 
   /**
