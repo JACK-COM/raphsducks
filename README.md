@@ -34,7 +34,7 @@
     - [How is it different from Redux?](#how-is-it-different-from-redux)
     - [1. Why did you choose that name?](#1-why-did-you-choose-that-name)
     - [2. Does this need React or Redux?](#2-does-this-need-react-or-redux)
-    - [3. Can I use this in [React, Vue, Svelte ... ]?](#3-can-i-use-this-in-react-vue-svelte--)
+    - [3. Can I use this in \[React, Vue, Svelte ... \]?](#3-can-i-use-this-in-react-vue-svelte--)
     - [4. Why not just use redux?](#4-why-not-just-use-redux)
   - [Development](#development)
 
@@ -181,7 +181,8 @@ unsubscribe(); // 'doSomethingElse' won't get called.
 ```
 
 ##### One-time subscription to a specific value
-Listen until a specific item gets updated, then use it. The value is guaranteed to be on the updated state object. We'll use `state.todos` in our example.
+Listen until a specific item gets updated, then use it. The value is guaranteed to be on the updated state object.\
+We'll use `state.todos` in our example.
 ```typescript
 const unsubscribe = store.subscribeOnce((state) => {
     const todos = state.todos;
@@ -211,7 +212,9 @@ An instance of [`ApplicationStore`](#applicationstore-class) with full subscript
 ---
 
 ### **State Representation**
-A plain JS object literal that you pass into `createState`. This object, for all intents and purposes, *is* your state, though you will use [`ApplicationStore`](#applicationstore-class) to interact with it. 
+A plain JS object literal that you pass into `createState`.\
+This object, for all intents and purposes, *is* your state. It should hold any properties you want to track.
+You can modify/use your **state representation** via the [`State Instance`](#applicationstore-class). 
 
 ---
 
