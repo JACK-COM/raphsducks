@@ -311,7 +311,7 @@ describe("Application State High Intensity", () => {
   const unsubscribers: Unsubscriber[] = [];
   // create listeners
   let i = 0;
-  const limit = 350;
+  const limit = 500;
   const control = {
     lastOne() {},
     listener: (state: any, k: string[]) => {
@@ -349,6 +349,7 @@ describe("Application State High Intensity", () => {
       i += 1;
     } while (i < limit * 10);
     const { count: final } = isolated.getState();
+    console.log(`completed ${limit * 10} updates`)
     expect(final).toStrictEqual(limit * 10);
     expect(final).not.toStrictEqual(initial.count);
     expect(controlSpy).toHaveBeenCalledTimes(final);
