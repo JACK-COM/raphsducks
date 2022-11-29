@@ -12,6 +12,8 @@ import store from "./path/to/my/store-instance";
 export default function FunctionalComponent(TargetComponent, stateKeys) {
     const [someValue, setSomeValue] = React.useState(0);
     
+    // ⚠️ React functional components do not play nice with raphsducks. Component 
+    // subscriptions get duplicated, though it is unclear why. Use with caution!
     React.useEffect(() => 
         // 'subscribe' returns a function, which will be used by 'useEffect' to
         // clean up when this component is unmounted.
