@@ -108,11 +108,8 @@ class _ApplicationStore {
     // Return no-operation if already subscribed
     if (this._subscribers.has(listener)) return noOp;
 
-    const subscription = this.subject.subscribe({
-      next: (vals) => {
-        const [updatedState, updatedKeys] = vals;
-        listener(updatedState, updatedKeys);
-      }
+    const subscription = from(this.subject).subscribe({
+      next: ([updatedState, updatedKeys]) => listener(updatedState, updatedKeys)
     });
 
     return this.addSubscription(subscription, listener);
@@ -122,9 +119,14 @@ class _ApplicationStore {
     subscription: Subscription,
     listener?: ListenerFn<ApplicationState>
   ): Unsubscriber {
-    const unsub = () => subscription.unsubscribe();
-    if (!listener) return unsub;
+    const unsub = () => {
+      subscription.unsubscribe();
+      this.allSubscriptions.remove(subscription);
+    };
 
+    if (!listener || this._subscribers.has(listener)) return unsub;
+
+    // prevent duplicates
     const size = this._subscribers.size;
     this._subscribers.add(listener);
     if (this._subscribers.size === size) return unsub;
@@ -135,7 +137,6 @@ class _ApplicationStore {
     return () => {
       unsub();
       this._subscribers.delete(listener);
-      this.allSubscriptions.remove(subscription);
       this.subscribers.length = this._subscribers.size;
     };
   }
@@ -157,6 +158,9 @@ class _ApplicationStore {
   ): Unsubscriber {
     const invalidListener = validateListener(listener);
     if (invalidListener) throw new Error(invalidListener);
+
+    // Return no-operation if already subscribed
+    if (this._subscribers.has(listener)) return noOp;
 
     const k = (key || "").toString();
     const subscription = from(this.subject)
@@ -199,6 +203,9 @@ class _ApplicationStore {
   ): Unsubscriber {
     const invalidListener = validateListener(listener);
     if (invalidListener) throw new Error(invalidListener);
+
+    // Return no-operation if already subscribed
+    if (this._subscribers.has(listener)) return noOp;
 
     // construct a custom subscriber
     const subscription = from(this.subject)
