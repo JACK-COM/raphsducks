@@ -32,7 +32,7 @@ export type Store<S> = {
    * @param listener Listener function
    * @returns {() => void} Unsubscribe function
    */
-  subscribe(listener: ListenerFn<Partial<S>>, x?: boolean): Unsubscriber;
+  subscribe(listener: ListenerFn<Partial<S>>): Unsubscriber;
 
   /**
    * Subscribe until a specified `key` is updated, then unsubscribe. Optionally takes
@@ -57,10 +57,10 @@ export type Store<S> = {
    * @param keys List of state keys to "watch" for updates
    * @returns {Unsubscriber} Unsubscribe function
    */
-  subscribeToKeys(
+  subscribeToKeys<K extends keyof S & string>(
     listener: ListenerFn<Partial<S>>,
-    keys: Partial<keyof S>[] | string[],
-    valueCheck?: (key: string, expectedValue: any) => boolean
+    keys: (K & string)[],
+    valueCheck?: (key: K, expectedValue: S[K]) => boolean
   ): Unsubscriber;
 } & { [k in keyof S]: (u: S[k]) => void };
 
