@@ -72,9 +72,6 @@ When called, this returns an `State` instance, which
 /* MyApplicationStore.js */ 
 import createState from '@jackcom/raphsducks';
 
-// This is just an example used in the instantiation below
-type Todo = { title: string, value: boolean };
-
 // State definition: the object-literal you supply is your initial state.
 const initialState = {
     todos: [],
@@ -98,6 +95,8 @@ In the example above, both `todos` and `someOtherValue` will become functions on
 > When working with TS, you'll want to cast object types in your initial state to avoid type assertion errors. 
 > 
 > ```typescript
+> type Todo = { title: string, value: boolean };
+>
 > const initialState = {
 >     todos: [] as Todo[], // require an array of `Todo` objects
 >     someOtherValue: false, // boolean (inferred)
