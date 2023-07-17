@@ -88,12 +88,12 @@ class _ApplicationStore {
 
   /** Reset the instance to its initialized state. Preserve subscribers. */
   reset(clearSubscribers = false) {
-    // reset state to initial values without notifying subscribers
-    this.state = { ...this.ref };
     if (clearSubscribers) {
+      // reset state to initial values without notifying subscribers
+      this.state = { ...this.ref };
       this.allSubscriptions.unsubscribe();
       this.subscribers = [];
-    }
+    } else this.multiple(this.ref as Partial<ApplicationState>);
   }
 
   /**

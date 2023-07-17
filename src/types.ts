@@ -45,7 +45,7 @@ export type Store<S> = {
    * @returns {Unsubscriber} Unsubscribe function
    */
   subscribeOnce<K extends keyof S>(
-    listener: ListenerFn<Partial<S>>,
+    listener: ListenerFn<Pick<S, K>>,
     key?: K,
     valueCheck?: (some: S[K]) => boolean
   ): Unsubscriber;
@@ -58,7 +58,7 @@ export type Store<S> = {
    * @returns {Unsubscriber} Unsubscribe function
    */
   subscribeToKeys<K extends keyof S & string>(
-    listener: ListenerFn<Partial<S>>,
+    listener: ListenerFn<Pick<S, K>>,
     keys: (K & string)[],
     valueCheck?: (key: K, expectedValue: S[K]) => boolean
   ): Unsubscriber;
@@ -68,7 +68,7 @@ export type Store<S> = {
 export type StoreUpdaterFn<T> = { (value: T): void };
 
 /** Receives the updated state and a list of keys */
-export type ListenerFn<V> = { (state: V, updatedKeys: string[]): void };
+export type ListenerFn<V> = { (state: V, updatedKeys: (keyof V)[]): void };
 
 /** Unsubscribes a listener from the state */
 export type Unsubscriber = { (): void };
