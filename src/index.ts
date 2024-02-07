@@ -1,99 +1,56 @@
-import { filter, from, map, Subject, Subscription } from "rxjs";
-import { ApplicationState, ListenerFn, Store, Unsubscriber } from "./types";
+import { Map } from "immutable";
+import { ListenerFn, Store, Unsubscriber } from "./types";
 
-const noOp = () => {};
-
-export type StateUpdate = [ApplicationState, string[]];
-
-/**
- * A representation of an Application state.`ApplicationStore` is the state instance that
- * turns each key in its constructor args into a method from updating that state property.
- * (e.g. `state.users` = ApplicationStore.users( ... ))
- */
-class _ApplicationStore {
+class _ApplicationStore<T extends Record<string, any>> {
   [x: string]: any;
 
-  private subject: Subject<StateUpdate>;
-
-  /** Hold all subscriptions for one-shot reset */
-  private allSubscriptions: Subscription;
+  /** Immutable instance state data that gets updated. */
+  private state: Map<string | keyof T, any>;
 
   /** Subscribers/Listeners that are called when the state changes */
-  private _subscribers: Set<ListenerFn<ApplicationState>>;
-
-  /** Subscribers/Listeners that are called when the state changes */
-  subscribers: { length: number };
+  private _subscribers: Set<ListenerFn<T>> = new Set();
 
   /** @private Copy of original state args */
-  private ref: ApplicationState | null = null;
+  private ref: T | null = null;
 
-  /** Instance state that gets updated. */
-  private state: ApplicationState = {};
+  /** @legacy Number of state Subscribers/Listeners */
+  subscribers = { length: 0 };
 
-  constructor(state: ApplicationState) {
-    /* State requires at least one key */
-    if (Object.keys(state).length < 1) {
-      const msg = "'state' needs to be an object with at least one key";
-      throw new Error(msg);
+  constructor(initialState: T) {
+    if (Object.keys(initialState).length < 1) {
+      throw new Error("'state' needs to be an object with at least one key");
     }
-
-    // Initialize application source-of-truth
-    this.state = { ...state };
-    this.ref = Object.freeze(state);
-    this.subject = new Subject();
-    this.subscribers = { length: 0 };
-    this._subscribers = new Set();
-    this.allSubscriptions = this.subject.subscribe({ next() {} });
+    this.state = Map(initialState);
+    this.ref = Object.freeze(initialState);
 
     // Turn every key in the `state` representation into a method on the instance.
-    for (let key in state) {
-      const updater = (value: any = null): void => {
-        const updated = Object.assign({}, this.state, { [key]: value });
+    for (let key in initialState) {
+      // create a type that represents initialState[key]
+      type UpdateValue = (typeof initialState)[typeof key];
+      const updater = (value: UpdateValue | null = null): void => {
+        const updated = { [key]: value } as T;
         return this.updateState(updated, [key]);
       };
 
-      // (this as any)[key] = updater;
-      (this as Store<ApplicationState>)[key] = updater;
+      (this as any)[key] = updater;
     }
   }
 
   /** Get [a copy of] the current application state */
-  getState() {
-    return Object.assign({}, { ...this.state });
+  getState(): T {
+    return this.state.toJS();
   }
 
-  /**
-   * Update multiple keys in state before notifying subscribers.
-   * @param {Partial<ApplicationState>} changes Data source for state updates. This
-   * is an object with one or more state keys that need to be updated.
-   */
-  multiple(changes: Partial<ApplicationState>): void {
-    if (typeof changes !== "object") {
-      throw new Error("State updates need to be a key-value object literal");
+  /** @private Update the instance with changes, then notify subscribers with a copy */
+  private updateState(updates: T, keysToUpdate: (keyof T)[] = []): void {
+    const newState = keysToUpdate.reduce((state, key) => {
+      return state.set(key, updates[key as keyof T]);
+    }, this.state);
+
+    if (!this.state.equals(newState)) {
+      this.state = newState;
+      this.notifySubscribers(keysToUpdate);
     }
-
-    const changeKeys: string[] = Object.keys(changes);
-    let updated = { ...this.state };
-
-    changeKeys.forEach((key) => {
-      if (!(this as any)[key]) {
-        throw new Error(`There is no "${key}" in this state instance.`);
-      } else {
-        updated = { ...updated, [key]: changes[key] };
-      }
-    });
-
-    return this.updateState(updated, changeKeys);
-  }
-
-  /** Reset the instance to its initialized state. Preserve subscribers. */
-  reset(clearSubscribers = false) {
-    if (clearSubscribers) {
-      // reset state to initial values without notifying subscribers
-      this.state = { ...this.ref };
-      this.allSubscriptions.unsubscribe();
-      this.subscribers = [];
-    } else this.multiple(this.ref as Partial<ApplicationState>);
   }
 
   /**
@@ -101,44 +58,45 @@ class _ApplicationStore {
    * @param listener Listener function
    * @returns Unsubscribe function
    */
-  subscribe(listener: ListenerFn<ApplicationState>): Unsubscriber {
-    const invalidListener = validateListener(listener);
-    if (invalidListener) throw new Error(invalidListener);
-
-    // Return no-operation if already subscribed
-    if (this._subscribers.has(listener)) return noOp;
-
-    const subscription = from(this.subject).subscribe({
-      next: ([updatedState, updatedKeys]) => listener(updatedState, updatedKeys)
-    });
-
-    return this.addSubscription(subscription, listener);
-  }
-
-  private addSubscription(
-    subscription: Subscription,
-    listener?: ListenerFn<ApplicationState>
-  ): Unsubscriber {
-    const unsub = () => {
-      subscription.unsubscribe();
-      this.allSubscriptions.remove(subscription);
-    };
-
-    if (!listener || this._subscribers.has(listener)) return unsub;
-
-    // prevent duplicates
-    const size = this._subscribers.size;
+  subscribe(listener: ListenerFn<T>): Unsubscriber {
     this._subscribers.add(listener);
-    if (this._subscribers.size === size) return unsub;
-
-    this.allSubscriptions.add(subscription);
     this.subscribers.length = this._subscribers.size;
 
     return () => {
-      unsub();
       this._subscribers.delete(listener);
       this.subscribers.length = this._subscribers.size;
     };
+  }
+
+  /**
+   * Subscribe to changes applied to a subset of state properties.
+   * @param listener Listener function
+   * @param keys List of state keys to "watch" for updates
+   * @param valueCheck Optional function to assert the value of `key` when it updates.
+   * @returns Unsubscribe function
+   */
+  subscribeToKeys<K extends keyof T>(
+    listener: ListenerFn<Pick<T, K>>,
+    keys: K[],
+    valueCheck = (k: K, v: any) => true
+  ): Unsubscriber {
+    // Return unsubscribe function
+    return this.subscribe((newState, updatedKeys) => {
+      // Only notify this listener for changes to specified keys
+      const empty = {} as { [k in (typeof keys)[number]]: T[k] };
+      const listenerUpdates = keys.reduce((agg, key) => {
+        if (updatedKeys.includes(key) && valueCheck(key, newState[key]))
+          agg[key] = newState[key];
+        return agg;
+      }, empty);
+
+      if (Object.keys(listenerUpdates).length === 0) return;
+
+      listener(
+        listenerUpdates,
+        (updatedKeys as K[]).filter((k) => keys.includes(k))
+      );
+    });
   }
 
   /**
@@ -151,120 +109,69 @@ class _ApplicationStore {
    * @param expectValue Optional function to assert the value of `key` when it updates.
    * @returns Unsubscribe function
    */
-  subscribeOnce<K extends keyof ApplicationState>(
-    listener: ListenerFn<ApplicationState>,
+  subscribeOnce<K extends keyof T>(
+    listener: ListenerFn<Pick<T, K>>,
     key?: K,
-    expectValue?: (val: ApplicationState[K]) => boolean
+    valueCheck?: (some: T[K]) => boolean
   ): Unsubscriber {
-    const invalidListener = validateListener(listener);
-    if (invalidListener) throw new Error(invalidListener);
+    // Return unsubscribe function
+    const unsubscribe = this.subscribe((newState, updatedKeys) => {
+      if (key) {
+        if (!updatedKeys.includes(key)) return;
+        if (valueCheck && !valueCheck(newState[key])) return;
+      }
 
-    // Return no-operation if already subscribed
-    if (this._subscribers.has(listener)) return noOp;
+      listener(newState, updatedKeys as K[]);
+      unsubscribe(); // Unsubscribe after the first update
+    });
 
-    const k = (key || "").toString();
-    const subscription = from(this.subject)
-      .pipe(
-        filter((val) => {
-          const match = k === "" || val[1].includes(k);
-          return match || (expectValue ? expectValue(val[0][k]) : true);
-        })
-      )
-      .subscribe({
-        next: (vals) => {
-          const [state, updated] = vals;
-          // Exit if key was not updated, or does not have an expected value
-          const wasUpdated = !key || updated.includes(k);
-          const isExpected = !expectValue || expectValue(state[k]);
-          const notify = wasUpdated && isExpected;
+    return unsubscribe;
+  }
 
-          // Trigger the listener
-          if (notify) {
-            subscription.unsubscribe();
-            return listener(state, [k]);
-          }
-        }
-      });
+  /** Reset the instance to its initialized state. Preserve subscribers. */
+  reset(clearSubscribers?: boolean): void {
+    if (clearSubscribers) {
+      // reset state to initial values without notifying subscribers
+      this.state = Map(this.ref as T);
+      this._subscribers.clear();
+      this.subscribers.length = 0;
+    } else this.multiple(this.ref as T);
+  }
 
-    return this.addSubscription(subscription);
+  /** Dispatch updates to listeners */
+  private notifySubscribers(updatedKeys: (keyof T)[]): void {
+    const currentState = this.getState();
+    this._subscribers.forEach((listener) =>
+      listener(currentState, updatedKeys)
+    );
   }
 
   /**
-   * Subscribe to changes applied to a subset of state properties.
-   * @param listener Listener function
-   * @param keys List of state keys to "watch" for updates
-   * @param valueCheck Optional function to assert the value of `key` when it updates.
-   * @returns Unsubscribe function
+   * Update multiple keys in state before notifying subscribers.
+   * @param {Partial<ApplicationState>} changes Data source for state updates. This
+   * is an object with one or more state keys that need to be updated.
    */
-  subscribeToKeys(
-    listener: ListenerFn<ApplicationState>,
-    keys: string[],
-    valueCheck = (k: string, v: any) => true
-  ): Unsubscriber {
-    const invalidListener = validateListener(listener);
-    if (invalidListener) throw new Error(invalidListener);
+  multiple(changes: Partial<T>): void {
+    if (typeof changes !== "object" || Array.isArray(changes)) {
+      throw new Error("State updates need to be a key-value object literal");
+    }
 
-    // Return no-operation if already subscribed
-    if (this._subscribers.has(listener)) return noOp;
+    // validate changeset
+    const changeKeys: (keyof T)[] = Object.keys(changes) as (keyof T)[];
+    changeKeys.forEach((key) => {
+      if (!this.state.has(key)) {
+        throw new Error(`There is no "${String(key)}" in this state instance.`);
+      }
+    });
 
-    // construct a custom subscriber
-    const subscription = from(this.subject)
-      .pipe(
-        // find relevant updates
-        filter(([s, updatedKeys]) =>
-          updatedKeys.some((uk) => keys.includes(uk))
-        ),
-        // Copy updated values that appear in the `keys` list
-        map(([s, updatedKeys]) => {
-          const rKeys: string[] = updatedKeys.filter((k) => keys.includes(k));
-          const newState = rKeys.reduce((agg: StateObject, key: string) => {
-            const matches = valueCheck(key, s[key]);
-            return matches ? { ...agg, [key]: s[key] } : agg;
-          }, {});
-
-          return [newState, rKeys];
-        })
-      )
-      .subscribe((vals) => {
-        if (Object.keys(vals[0]).length === 0) return;
-        const [updated, updatedKeys] = vals as StateUpdate;
-        listener(updated, updatedKeys);
-      });
-
-    // return an unsubscribe function
-    return this.addSubscription(subscription, listener);
+    return this.updateState(changes as T, changeKeys);
   }
-
-  /**
-   * @private Update the instance with changes, then notify subscribers with a copy
-   */
-  private updateState(updated: ApplicationState, updatedKeys: string[] = []) {
-    this.state = { ...updated };
-    this.subject.next([updated, updatedKeys]);
-  }
-}
-
-/**
- * Return an error message when a param is not a function.
- * @param listener Listener function parameter
- * @returns {string|null} Error message or `null` if param is valid
- */
-function validateListener(
-  listener: ListenerFn<ApplicationState>
-): string | null {
-  // This better be a function. Or Else.
-  return typeof listener !== "function"
-    ? `Invalid listener: '${typeof listener}' is not a function`
-    : null;
 }
 
 /** Passed ref for retaining type definitions */
 const ApplicationStore = _ApplicationStore as { new <T>(s: T): Store<T> };
 
-/** Create an `ApplicationStore` instance */
-type StateObject = Record<string, any>;
-export default function createState<T extends StateObject>(
-  initialState: T
-): Store<T> {
+// Modify createState function to use Immutable.js
+export default function createState<T extends {}>(initialState: T): Store<T> {
   return new ApplicationStore(initialState);
 }
