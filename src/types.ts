@@ -59,7 +59,7 @@ export type Store<S> = {
    */
   subscribeToKeys<K extends keyof S & string>(
     listener: ListenerFn<Pick<S, K>>,
-    keys: (K & string)[],
+    keys: K[],
     valueCheck?: (key: K, expectedValue: S[K]) => boolean
   ): Unsubscriber;
 } & { [k in keyof S]: (u: S[k]) => void };

@@ -4,7 +4,7 @@ import { Unsubscriber } from "./types";
 const initialState = {
   todos: [] as any[],
   someBoolean: false as boolean | null,
-  someString: "",
+  someString: ""
 };
 // State Instances
 const DefaultState = createState(initialState);
@@ -62,7 +62,7 @@ describe("Application State Manager", () => {
 
     DefaultState.multiple({
       someBoolean: true,
-      todos: [1, 2, 4],
+      todos: [1, 2, 4]
     });
     unsub();
     expect(DefaultState.subscribers.length).toBe(0);
@@ -196,8 +196,11 @@ describe("Application State Manager", () => {
     const spy = jest.fn();
     const key = "someString";
     const expected = "goodbye";
-    const check = (k: string, v: any) => k === key && v === expected;
-    const cleanup = UniqueState.subscribeToKeys(spy, [key], check);
+    const cleanup = UniqueState.subscribeToKeys(
+      spy,
+      [key],
+      (k, v) => k === key && v === expected
+    );
 
     UniqueState.someBoolean(false);
     expect(spy).not.toHaveBeenCalled();
@@ -211,7 +214,7 @@ describe("Application State Manager", () => {
     UniqueState.multiple({
       someString: key,
       todos: [5, 4, 3, 2, 1],
-      someBoolean: true,
+      someBoolean: true
     });
     expect(spy).not.toHaveBeenCalled();
 
@@ -240,14 +243,14 @@ describe("Application State Manager", () => {
     // trigger state change
     UniqueState.multiple({
       someBoolean: true,
-      todos: [{ text: "Pet the cat", done: false }],
+      todos: [{ text: "Pet the cat", done: false }]
     });
 
     cleanup();
     // trigger another state change
     UniqueState.multiple({
       someBoolean: true,
-      todos: [{ text: "Pets the cat", done: true }],
+      todos: [{ text: "Pets the cat", done: true }]
     });
     // assert subscribers were triggered
     expect(stub).toHaveBeenCalledTimes(1);
@@ -263,7 +266,7 @@ describe("Application State Manager", () => {
     const updates = {
       someBoolean: true,
       todos: [{ text: "Pet the cat", done: false }],
-      someString: "Hello",
+      someString: "Hello"
     };
 
     // trigger state change
@@ -288,7 +291,7 @@ describe("Application State Manager", () => {
     const updates = {
       someBoolean: true,
       todos: [{ text: "Pet the cat", done: false }],
-      someString: "Hello",
+      someString: "Hello"
     };
 
     const spyScriber = jest.fn();
@@ -317,7 +320,7 @@ describe("Application State High Intensity", () => {
     listener: (state: any, k: string[]) => {
       console.assert(state);
       console.assert(k);
-    },
+    }
   };
   const controlSpy = jest.spyOn(control, "listener");
   const lastSpy = jest.spyOn(control, "lastOne");
@@ -349,7 +352,7 @@ describe("Application State High Intensity", () => {
       i += 1;
     } while (i < limit * 10);
     const { count: final } = isolated.getState();
-    console.log(`completed ${limit * 10} updates`)
+    console.log(`completed ${limit * 10} updates`);
     expect(final).toStrictEqual(limit * 10);
     expect(final).not.toStrictEqual(initial.count);
     expect(controlSpy).toHaveBeenCalledTimes(final);

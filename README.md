@@ -1,18 +1,22 @@
-# Raph's Ducks v2x
+# Raph's Ducks v3
 
 > **UPDATES:** 
 > * Version `1.X.X` simplifies the library and introduces breaking changes.
 > If you're looking for the `0.X.X` documentation (I am _so sorry_), [look here](/README-v-0XX.md),
 > * Version `1.1.X` adds `typescript` support, and a new `subscribeOnce` function (see below)
-> * Version `2.0.X` introduces `rxjs` under the hood
+> * Version `2.X.X` introduces `rxjs` under the hood
+> * Version `3.X.X` replaces `rxjs` with `immutablejs` for maximum profit
 
 --- 
 
-- [Raph's Ducks v2x](#raphs-ducks-v2x)
+- [Raph's Ducks v3](#raphs-ducks-v3)
   - [What is it?](#what-is-it)
   - [Installation](#installation)
   - [Usage Overview](#usage-overview)
     - [Defining your state](#defining-your-state)
+      - [Working with Typescript](#working-with-typescript)
+        - [i. inline type definitions (recommended)](#i-inline-type-definitions-recommended)
+        - [ii. Initial State Type Definitions](#ii-initial-state-type-definitions)
     - [Updating your state instance](#updating-your-state-instance)
     - [Subscribing to your state instance](#subscribing-to-your-state-instance)
       - [Disposable (one-time) subscription](#disposable-one-time-subscription)
@@ -43,8 +47,11 @@
 
 ## What is it?
 * A simple Javascript state manager. 
-* API is based on the Redux core (i.e. includes familiar functions like `subscribe` and `getState`), but without reducers and other complexities
-* Framework agnostic; can be used with any UI library (React, Vue, Svelte, etc)
+* API is based on the Redux core
+  * Subscribe to state with `subscribe` (returns an unsubscription function) 
+  * Get a copy of current state with `getState`
+  * NO REDUCERS! Just update the key(s) you want with the data you expect.
+* Can be used in a NodeJS backend, or with any UI library (React, Vue, Svelte, etc)
 
 If it isn't the simplest state-manager you have ever encountered, I'll ...\
 I'll eat my very ~~javascript~~ typescript. 
@@ -55,7 +62,7 @@ I'll eat my very ~~javascript~~ typescript.
 
 ---
 ## Usage Overview
-This library can be used singly, or in combination with other state managers. It aims to allow the following with limited overhead: 
+This library can be used alone, or in combination with other state managers. Here's what you do:
 1) Define a state, and 
 2) Use it.
 
@@ -91,25 +98,62 @@ export default store;
   
 In the example above, both `todos` and `someOtherValue` will become functions on `store`. See [usage here](#updating-your-state-instance)
 
-> #### Working with Typescript
-> When working with TS, you'll want to cast object types in your initial state to avoid type assertion errors. 
-> 
+#### Working with Typescript
+When working with TS, you'll want to cast object types in your initial state to avoid type assertion errors. This prevents  array types from being initialized as `never[]`, and lets the instance know what keys to expect from any child objects.
+ 
+##### i. inline type definitions (recommended)
 > ```typescript
-> type Todo = { title: string, value: boolean };
->
+> // A single `To do` object (e.g. for a to-do list)
+> type ToDo = { title: string, description?: string, done: boolean };
+> 
+> // Initial state with inline type definitions
 > const initialState = {
->     todos: [] as Todo[], // require an array of `Todo` objects
+>     todos: [] as ToDo[], // require an array of `ToDo` objects
 >     someOtherValue: false, // boolean (inferred)
 >     someCounter: 0, // number (inferred)
->     someString: '' // string (inferred)
+>     someString: '' as string | null // will allow `null` for this key
 > }
 > 
-> // Or you can do something like this:
-> const initialState: MyStateTypeDef = { ... };
-> createState(initialState);
+> const myStateInstance = createState(initialState);
 > 
-> // Or maybe even this:
-> createState<MyStateTypeDef>({ ... });
+> // update select keys
+> myStateInstance.multiple({
+>    someOtherValue: true,
+>    someCounter: 3,
+> }); 
+>
+> // Check results
+> myStateInstance.getState().someOtherValue;    // true
+> myStateInstance.getState().someCounter;       // 3
+>
+> ```
+
+
+##### ii. Initial State Type Definitions
+**Note:** This requires you to update your state type definition *as well as* your initial state object.
+
+You can optionally create a type-def for the entire state, though this gets
+unwieldy to maintain. Inline definitions are cleaner and recommended (see above). 
+
+> ```typescript
+> // IMPORTANT: DO NOT specify optional properties on the top level, or you'll 
+> // never hear the end of it.
+> type MyStateTypeDef = {
+>   todos: ToDo[];
+>   someOtherValue: boolean;
+>   someCounter: number;
+>   someString: stringl
+> };
+>
+> // A single `To do` object (e.g. for a to-do list)
+> type ToDo = { title: string, value: boolean };
+> 
+> // USAGE 1: Type-cast your initial state to get TS warnings for missing properties.
+> const initialState: MyStateTypeDef = { ... };
+> const myStateInstance = createState(initialState);
+>
+> // USAGE 2: Cast the `createState` function to get TS warnings here.
+> const myStateInstance = createState<MyStateTypeDef>( /* initialState */ );
 > ```
 > 
 
