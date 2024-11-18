@@ -50,6 +50,21 @@ describe("Application State Manager", () => {
     expect(() => DefaultState.invalid(true)).toThrow();
   });
 
+  it("Updates a property ONCE if no other properties change", () => {
+    const listener = jest.fn();
+    const unsub = DefaultState.subscribe(listener);
+    expect(DefaultState.subscribers.length).toBe(1);
+
+    DefaultState.someBoolean(true);
+    DefaultState.someBoolean(true); // call it twice
+    DefaultState.someBoolean(true); // call it thrice
+    DefaultState.someBoolean(true); // make it nice
+    expect(DefaultState.getState().someBoolean).toStrictEqual(true);
+    expect(listener).toHaveBeenCalledTimes(1);
+    unsub();
+    expect(DefaultState.subscribers.length).toBe(0);
+  });
+
   it("Updates multiple properties before notifying subscribers once", () => {
     const listener = jest.fn();
     expect(DefaultState.subscribers.length).toBe(0);
@@ -314,7 +329,7 @@ describe("Application State High Intensity", () => {
   const unsubscribers: Unsubscriber[] = [];
   // create listeners
   let i = 0;
-  const limit = 500;
+  const limit = 650;
   const control = {
     lastOne() {},
     listener: (state: any, k: string[]) => {
@@ -345,11 +360,13 @@ describe("Application State High Intensity", () => {
 
   it(`Handles a ${limit} jest spies update`, () => {
     const cleanup = isolated.subscribe(control.listener);
+    console.log(
+      `start ${limit * 10} updates for ${isolated.subscribers.length} listeners`
+    );
     // make changes
     do {
-      const { count } = isolated.getState();
-      isolated.count(count + 1);
       i += 1;
+      isolated.count(i);
     } while (i < limit * 10);
     const { count: final } = isolated.getState();
     console.log(`completed ${limit * 10} updates`);
