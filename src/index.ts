@@ -78,7 +78,7 @@ class _ApplicationStore<T extends Record<string, any>> {
   subscribeToKeys<K extends keyof T>(
     listener: ListenerFn<Pick<T, K>>,
     keys: K[],
-    valueCheck = (k: K, v: any) => true
+    valueCheck = (k: K, v: T[K]) => true
   ): Unsubscriber {
     // Return unsubscribe function
     return this.subscribe((newState, updatedKeys) => {
