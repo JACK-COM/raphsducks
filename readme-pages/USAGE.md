@@ -1,5 +1,7 @@
 # How to use *raphsducks*
+
 ## Table of Contents
+
 * [Core Concepts](#usage---core-concepts)
   * [Creating an instance](#1-creating-your-state-instance)
   * [Using the instance](#2-using-the-state-instance)
@@ -12,7 +14,9 @@
 ## Usage - Core Concepts
 
 ### 1. Creating your state instance
+
 Initialize your `state` in a file (or application component, or, you know, wherever)
+
 ```typescript
 /* MyApplicationStore.js */ 
 import createState from '@jackcom/raphsducks';
@@ -28,7 +32,9 @@ export default store;
 ```
 
 ### 2. Using the state instance
+
 Use your `state` in a file (or application component, or, you know, wherever)
+
 ```typescript
     // SomewhereInAComponent.js
     import store from './path/to/MyApplicationStore.js';
@@ -43,8 +49,10 @@ Use your `state` in a file (or application component, or, you know, wherever)
     });
 ```
 
-### 3. Access values in the current state 
+### 3. Access values in the current state
+
 #### i. Ad-hoc access
+
 ```typescript
     // a) Check current state. You can get the entire state object, 
     const currentState = store.getState(); // { todos: [...], someOtherValue: ... }
@@ -52,7 +60,9 @@ Use your `state` in a file (or application component, or, you know, wherever)
     // ...or deconstruct only what you need.
     const { todos } = store.getState();
 ```
+
 #### ii. Access the current state via subscription
+
 ```typescript
     // Subscribe for updates: optionally use 'updatedKeys' to restrict local updates
     // Calling 'subscribe( ... )' returns an 'unsubscribe' function, which you can use
@@ -71,7 +81,9 @@ Use your `state` in a file (or application component, or, you know, wherever)
     // Reset state to starting point (this won't remove your subscribers)
     store.reset();
 ```
+
 #### iii. Access the current state via one-time subscriptions
+
 ```typescript
     // Subscribe ONCE for updates. When the target 'key' is updated, your listener
     // will be triggered with only that value, and subsequently unsubscribed. 
@@ -90,6 +102,7 @@ Use your `state` in a file (or application component, or, you know, wherever)
 
 > **NOTE:** Don't use uninstantiated keys at runtime, or you will get an error! Given our example
 > above, the following will fail since `invalidKey` wasn't in the arguments to `createState`:
+>
 > ```javascript
 > store.multiple({ wellThisIsNew: true, todos: [ ... ] })
 > ```
@@ -97,10 +110,11 @@ Use your `state` in a file (or application component, or, you know, wherever)
 ---
 
 ## Usage - Property Type Assertions
+
 Some state properties will require type assertions at initialization, in order to prevent compile-time errors. This becomes necessary if you want to initialize properties as `null`, and only provide real values later in your application lifecycle.
 
-
 #### [✅] Example: Initializing an array property the Smart™ way
+
 ```typescript
 // Cast the property in the initialization parameter
 const store = createState({
@@ -110,8 +124,11 @@ const store = createState({
 // This works because the property is now expecting a list of numbers
 store.someArray([1,2,3]);
 ```
+
 #### [❌] Example: Initializing an array property the *wrong* way
+
 The following will cause you untold sorrows and gnashing of teeth.
+
 ```typescript
 // Initialize an unspecified array type
 const store = createState({
@@ -129,8 +146,8 @@ store.someArray(([1,2,3] as never[]))
 ---
 
 ## Usage - Examples
+
 Some illustrative examples using popular front-end frameworks are provided below:
-* [React: Higher Order Component (HOC)](/readme-examples/react-subscriber-hoc.md)
+
 * [React: Using Functional Components](/readme-examples/react-functional-subscription.md)
 * [VueJS (2x, 3x) Mixin](/readme-examples/vue-subscriber-mixin.md)
-
