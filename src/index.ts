@@ -36,6 +36,14 @@ class _ApplicationStore<T extends Record<string, any>> {
     }
   }
 
+  /**
+   * Get current state as a JSON string.
+   * @returns String representation of state
+   */
+  serialize() {
+    return JSON.stringify(this.getState());
+  }
+
   /** Get [a copy of] the current application state */
   getState(): T {
     return this.state.toJS();
@@ -78,7 +86,7 @@ class _ApplicationStore<T extends Record<string, any>> {
   subscribeToKeys<K extends keyof T>(
     listener: ListenerFn<Pick<T, K>>,
     keys: K[],
-    valueCheck = (k: K, v: T[K]) => true
+    valueCheck: { (key: K, value: T[K]): boolean } = () => true
   ): Unsubscriber {
     // Return unsubscribe function
     return this.subscribe((newState, updatedKeys) => {
@@ -112,16 +120,16 @@ class _ApplicationStore<T extends Record<string, any>> {
   subscribeOnce<K extends keyof T>(
     listener: ListenerFn<Pick<T, K>>,
     key?: K,
-    valueCheck?: (some: T[K]) => boolean
+    valueCheck: { (value: T[K]): boolean } = () => true
   ): Unsubscriber {
     // Return unsubscribe function
-    const unsubscribe = this.subscribe((newState, updatedKeys) => {
+    const unsubscribe = this.subscribe((next, updated) => {
       if (key) {
-        if (!updatedKeys.includes(key)) return;
-        if (valueCheck && !valueCheck(newState[key])) return;
+        // Stop if key wasn't updated or doesn't have required value
+        if (!updated.includes(key) || !valueCheck(next[key])) return;
       }
 
-      listener(newState, updatedKeys as K[]);
+      listener(next, updated as K[]);
       unsubscribe(); // Unsubscribe after the first update
     });
 
