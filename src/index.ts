@@ -56,7 +56,7 @@ class _ApplicationStore<T extends Record<string, any>> {
     }, this.state);
 
     if (!this.state.equals(newState)) {
-      this.state = newState;
+      this.state = Map(newState);
       this.notifySubscribers(keysToUpdate);
     }
   }
