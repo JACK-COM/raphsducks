@@ -358,7 +358,7 @@ describe("Application State High Intensity", () => {
     i = 0;
   });
 
-  it(`Handles a ${limit} jest spies update`, () => {
+  it(`Handles a ${limit * 10} jest spies update`, () => {
     const cleanup = isolated.subscribe(control.listener);
     console.log(
       `start ${limit * 10} updates for ${isolated.subscribers.length} listeners`

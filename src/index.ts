@@ -149,9 +149,11 @@ class _ApplicationStore<T extends Record<string, any>> {
   /** Dispatch updates to listeners */
   private notifySubscribers(updatedKeys: (keyof T)[]): void {
     const currentState = this.getState();
-    this._subscribers.forEach((listener) =>
-      listener(currentState, updatedKeys)
-    );
+    const subs = [...this._subscribers];
+    for (let i = 0; i < subs.length; i++) {
+      const listener = subs[i];
+      listener(currentState, updatedKeys);
+    }
   }
 
   /**
