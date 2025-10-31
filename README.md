@@ -1,37 +1,38 @@
 # Raph's Ducks v3
 
-> **UPDATES:**
->
-> * Version `1.X.X` simplifies the library and introduces breaking changes.
-> If you're looking for the `0.X.X` documentation (I am _so sorry_), [look here](/README-v-0XX.md),
-> * Version `1.1.X` adds `typescript` support, and a new `subscribeOnce` function (see below)
-> * Version `2.X.X` introduces `rxjs` under the hood
-> * Version `3.X.X` replaces `rxjs` with `immutablejs` for maximum profit
+- A simple Javascript state manager.
+- API is based on the Redux core
+  - Subscribe to state with `subscribe` (returns an unsubscription function)
+  - Get a copy of current state with `getState`
+  - NO REDUCERS! Just update the key(s) you want with the data you expect.
+- Can be used in a NodeJS backend, or with any UI library (React, Vue, Svelte, etc)
+
+This library can be used alone, with or without a UI framework, and in combination with other state managers. Here's what you do:
+
+1) Define a state, and
+2) Use it.
+
+If it isn't the simplest state-manager you have ever encountered, I'll ...\
+I'll eat my very ~~javascript~~ typescript.
 
 ---
 
 - [Raph's Ducks v3](#raphs-ducks-v3)
-  - [What is it?](#what-is-it)
   - [Installation](#installation)
-  - [Usage Overview](#usage-overview)
-    - [Defining your state](#defining-your-state)
-      - [Working with Typescript](#working-with-typescript)
-        - [i. inline type definitions (recommended)](#i-inline-type-definitions-recommended)
-        - [ii. Initial State Type Definitions](#ii-initial-state-type-definitions)
-    - [Updating your state instance](#updating-your-state-instance)
-    - [Listening to your state instance](#listening-to-your-state-instance)
-      - [Disposable (one-time) subscription](#disposable-one-time-subscription)
-        - [Listen until the next state update](#listen-until-the-next-state-update)
-        - [One-time subscription to a specific key](#one-time-subscription-to-a-specific-key)
-        - [One-time subscription to a specific value](#one-time-subscription-to-a-specific-value)
-      - [Tactical Subscription](#tactical-subscription)
-        - [Listen for ANY change to specific keys](#listen-for-any-change-to-specific-keys)
-        - [Listen for SPECIFIC VALUES on specific keys](#listen-for-specific-values-on-specific-keys)
-    - [Preserving state](#preserving-state)
-      - [LocalStorage with serialize](#localstorage-with-serialize)
+  - [Quick start](#quick-start)
+  - [Define your state](#define-your-state)
+    - [Use TypeScript](#use-typescript)
+  - [Update your state instance](#update-your-state-instance)
+  - [Subscribe to state updates](#subscribe-to-state-updates)
+    - [Disposable subscriptions](#disposable-subscriptions)
+    - [Tactical Subscriptions](#tactical-subscriptions)
+      - [Listen for ANY change to specific keys](#listen-for-any-change-to-specific-keys)
+      - [Listen for SPECIFIC CHANGES to specific keys](#listen-for-specific-changes-to-specific-keys)
+  - [Preserving state](#preserving-state)
+    - [LocalStorage with serialize](#localstorage-with-serialize)
   - [Reference](#reference)
-    - [**createState**](#createstate)
-    - [ApplicationStore (Class)](#applicationstore-class)
+    - [createState](#createstate)
+    - [ApplicationStore](#applicationstore)
     - [Store Instance](#store-instance)
     - [State Representation](#state-representation)
     - [Listener Functions](#listener-functions)
@@ -49,264 +50,269 @@
     - [4. Why not just use redux?](#4-why-not-just-use-redux)
     - [5. Anything else I should know?](#5-anything-else-i-should-know)
   - [Development](#development)
-
----
-
-## What is it?
-
-* A simple Javascript state manager.
-* API is based on the Redux core
-  * Subscribe to state with `subscribe` (returns an unsubscription function)
-  * Get a copy of current state with `getState`
-  * NO REDUCERS! Just update the key(s) you want with the data you expect.
-* Can be used in a NodeJS backend, or with any UI library (React, Vue, Svelte, etc)
-
-If it isn't the simplest state-manager you have ever encountered, I'll ...\
-I'll eat my very ~~javascript~~ typescript.
-
----
+  - [Release notes](#release-notes)
 
 ## Installation
 
-    npm i -s @jackcom/raphsducks
+```bash
+npm i -s @jackcom/raphsducks
+```
 
 ---
 
-## Usage Overview
+## Quick start
 
-This library can be used alone, or in combination with other state managers. Here's what you do:
+The following snippet is a high-level overview. If you're working with typescript, see [Use TypeScript](#use-typescript)
 
-1) Define a state, and
-2) Use it.
-
----
-
-### Defining your state
-
-`raphsducks` allows you to intuitively define your state once, in a single place. The libary turns your state representation into an object that you can observe or update in different ways.
-
-The library exports a single function, `createState`.\
-When called, this returns an `State` instance, which
-
-* Turns every state property into a **setter function**, and
-* Provides additional functions for reading or subscribing to that state
-
-```typescript
-/* MyApplicationStore.js */ 
+```ts
 import createState from '@jackcom/raphsducks';
 
-// State definition: the object-literal you supply is your initial state.
+// The state instance you will actual use. 
+const store = createState({
+  todos: [],
+  truthy: false,
+  counter: 0,
+  nullableString: ''
+});
+
+// 1. Update a key at a time
+store.todos([ /* ... */ ]);
+store.truthy(true);
+store.counter(1);
+
+// 2. Update multiple keys at a time
+store.multiple({ todos: [/* ... */], counter: 4 })
+
+// 3. Check for changes
+const { counter, todos } = store.getState();
+
+// 4. Subscribe to changes
+const unsubscribe = store.subscribe((state) => {
+  const { counter, todos } = state;
+  // ... do something with changes
+})
+```
+
+---
+
+## Define your state
+
+`raphsducks` exports a single function, `createState`. Use it to create an object that you can observe or update in different ways from your state representation.
+
+```ts
+import createState from '@jackcom/raphsducks';
+
+// An object-literal you supply for your initial state.
 const initialState = {
     todos: [],
-    somethingTruthy: false,
+    truthy: false,
     counter: 0,
     nullableString: ''
 }
 
-// The state instance you will actual use. Instantiate, and you're ready to go.
+// Your state instance (for subscribing and updating the initial state).
 const store = createState(initialState);
 
 // (OPTIONAL) export for use in other parts of your app
 export default store;
 ```
 
-> <b style="color:#C63">Hint:</b> In typescript, a key initialized with `null` will _always_ expect `null` as an update value. To prevent type assertion errors, make sure you initialize your keys with a corresponding type. (e.g. `{ p: [] as string[] }`)
+> [!NOTE]
+> A typescript key initialized with `null` will _always_ expect `null` as an update value. To limit type assertion errors, use `<type> | null` for falsy types.
+>
+> Example: `{ myString: '' as string | null }` eliminates type errors when you call `store.myString(null)`.
+>
+> This is not an issue if you are using vanilla JavaScript.
   
-In the example above, both `todos` and `somethingTruthy` will become functions on `store`. See [usage here](#updating-your-state-instance)
+In the example above, both `todos` and `truthy` will become functions on `store`.
 
-#### Working with Typescript
+### Use TypeScript
 
-When working with TS, you'll want to cast object types in your initial state to avoid type assertion errors. This prevents  array types from being initialized as `never[]`, and lets the instance know what keys to expect from any child objects.
+Cast object types in your initial state to avoid type assertion errors. This prevents array types from being initialized as `never[]`, and lets the instance know what keys to expect from any child objects.
 
-##### i. inline type definitions (recommended)
+- **Inline type definitions** (recommended)
 
-```typescript
-// A single `To do` object (e.g. for a to-do list)
-type ToDo = { title: string, description?: string, done: boolean };
+  ```ts
+  // A single `To do` object (e.g. for a to-do list)
+  type ToDo = { title: string, description?: string, done: boolean };
 
-// Initial state with inline type definitions. You can supply this directly to
-// `createState` unless you're (e.g.) generating it from a function
-const initialState = {
-    todos: [] as ToDo[], // require an array of `ToDo` objects
-    somethingTruthy: false, // boolean (inferred)
-    counter: 0, // number (inferred)
-    nullableString: '' as string | null // will allow `null` for this key
-}
+  // Create an instance with your initial state. This example uses inline type
+  // definitions.
+  const store = createState({
+      todos: [] as ToDo[], // require an array of `ToDo` objects
+      truthy: false, // boolean (inferred)
+      counter: 0, // number (inferred)
+      nullableString: '' as string | null // will allow `null` for this key
+  });
+  ```
 
-// Create an instance with your state definition
-const store = createState(initialState);
+- **Initial State Type Definition**
 
-// update select keys
-store.multiple({
-   somethingTruthy: true,
-   counter: 3,
-}); 
-// Check results
-store.getState().somethingTruthy;    // true
-store.getState().counter;       // 3
+  You can optionally create a type definition for the entire state.
+  This is not recommended because you need to update the type and the initial state object.
 
-// Or use destructuring
-const { somethingTruthy, counter} = store.getState()
-console.log(somethingTruthy); // true
-console.log(counter); // 3
-```
+  - **Example 1**: Type-cast your initial state to get TS warnings for missing properties.
 
-##### ii. Initial State Type Definitions
+    ```ts
+    // IMPORTANT: Use "<value> || null" for falsy values.
+    type MyState = {
+      todos: { title: string, value: boolean }[];
+      truthy: boolean;
+      counter: number;
+      nullableString: string;
+    };
+    
+    const initialState: MyState = { 
+      todos: [],
+      truthy: false,
+      counter: 0,
+      nullableString: null
+    };
 
-You can optionally create a type-def for the entire state, though this gets
-unwieldy to maintain (since you need to update the type-def along with the initial state object).
-Inline definitions are recommended [(see above)](#i-inline-type-definitions-recommended).
+    const store = createState(initialState);
+    ```
 
-```typescript
-// IMPORTANT: DO NOT initialize properties as "undefined", or you'll never hear the end of it.
-type MyState = {
-  todos: ToDo[];
-  somethingTruthy: boolean;
-  counter: number;
-  nullableString: stringl
-};
+  - **Example 2**: Type-cast the `createState` function itself
 
-// A single `To do` object (e.g. for a to-do list)
-type ToDo = { title: string, value: boolean };
+    ```ts
+    type MyState = {
+      todos: { title: string, value: boolean }[];
+      truthy: boolean;
+      counter: number;
+      nullableString: string;
+    };
 
-// OPTION 1: Type-cast your initial state to get TS warnings for missing properties.
-const initialState: MyState = { ... };
-const store = createState(initialState);
+    const store = createState<MyState>( /* initialState */ );
+    store.truthy("A string"); // TS Error: function expects boolean
+    ```
 
-// OPTION 2: Type-cast the `createState` function itself
-const store = createState<MyState>( /* initialState */ );
+## Update your state instance
 
-// Now you have type definitions and editor hints:
-store.somethingTruthy; // (v: boolean) => void;
+You can update one key at a time, or several at once. In TypeScript, the value type is expected to be the same as the initial value type in state. Other types can usually be inferred.
 
-// And you can get typescript warnings when supplying the wrong value
-store.somethingTruthy("A string"); // TS Error: function expects boolean
-```
+```ts
+// Ex. 1: Update one key at a time
+// Notify subscribers that "todos" was changed
+store.todos([{ title: "Write code", value: true }]); 
 
----
+// Notify subscribers that "truthy" was changed
+store.truthy(false); 
 
-### Updating your state instance
-
-You can update one key at a time, or several at once. In Typescript, the value type is expected to be the same as the initial value type in state. Other types can usually be inferred.
-
-```typescript
-// Update one key at a time
-store.todos([{ title: "Write code", value: true }]); // notifies subscribers
-store.somethingTruthy(false); // notifies subscribers
-
-// Update several keys. Subscribers are notified once per 'multiple' call.
+// Ex. 2: Update several keys at once. Subscribers are notified once per 'multiple' call.
+// Notify subscribers that "truthy" and "todos" were changed
 store.multiple({
     todos: [{ title: "Write code", value: true }],
-    somethingTruthy: true,
-}); // notifies subscribers
+    truthy: true,
+}); 
 ```
 
-Note that `state.multiple( args )` will merge `args` into the current state instance. Make sure you update object properties carefully (e.g. merge `Array` properties before supplying them in `args`)
+> [!WARNING]
+> Update object properties carefully (e.g. merge `Array` properties before supplying them in `args`). The library
+> overwrites key values with what you provide.
 
-```typescript
+```ts
 // Updating an array property (CORRECT WAY)
 const oldTodos = store.getState().todos
 const newTodos = [...oldTodos, { title: "New task", value: false }]
 
 store.multiple({
     todos: newTodos,
-    somethingTruthy: true,
+    truthy: true,
 });
 ```
 
 ---
 
-### Listening to your state instance
+## Subscribe to state updates
 
-You can subscribe for updates. Your subscriber should take two values: the updated `state` values, and a list of just-updated state property names.
+Your state subscriber (or _listener_) takes two values: the updated `state` values, and a list of just-updated state property names.
 
-Every subscription returns an `unsubscribe` function. You can call it when you no longer need to listen for updates, or (for front-end apps) use it to clean up when a component is removed from the DOM.
+1. The updated `state` object-literal.
+2. list of keys that were just updated.
 
-```typescript
+Every subscription returns an `unsubscribe` function. Use this to stop listening for updates, or to clean up when a frontend component is removed from the DOM.
+
+```ts
+// An example local reference for the values you want from state
+let myTodos = [];
+
+// Create an unsubscriber by subscribing to a state instance
 const unsubscribe = store.subscribe((state, updatedKeys) => {
-    let myTodos;
-
-    // Handy way to check if a value you care about was updated.
-    if (updatedKeys.includes("todos")) {
-        myTodos = state.todos
-    }
+    // Check if a value you care about was updated.
+    if (updatedKeys.includes("todos")) myTodos = state.todos
 });
 
 // stop listening to state updates
 unsubscribe();
 ```
 
-`state.subscribe()` is a great way to listen to _every change_ that happens to your state, although you may have to check the updated object to see if it has the values you want.
+`state.subscribe()` listens to _every change_ that happens to your state. However, you may have to check the updated object to see if the new state has the values you want.
 
-Luckily there are other ways to subscribe to your state instance. These alternatives only notify when something you care about gets updated. Some of them allow you to even specify what _values_ you want to see in the state. See below.
+There are other ways to subscribe to your state instance. Some of them allow you to guarantee what _values_ should be in state before calling your listener.
 
-> **Hint:** the `listener` handler is the same in all `subscribe` functions. It always accepts two arguments: the updated `state` object-literal, and a list of keys that were just updated.
+### Disposable subscriptions
 
-#### Disposable (one-time) subscription
+[`subscribeOnce`](#applicationstore) allows you to listen until a specfic key (or any key) is updated. It will auto-unsubscribe after calling your listener.
 
-[`subscribeOnce`](#applicationstore-class) allows you to listen until a specfic key is updated (or just until the next state update happens). It will auto-unsubscribe depending on how you use it.
+- **Listen for only the next state update**
 
-##### Listen until the next state update
+  Wait for the next state update to trigger an action, regardless of what gets updated:
 
-You can wait for the next state update to trigger something else. This assumes that you don't care what is in state, as long as some other part of your application updated it.
+  ```ts
+  const unsubscribe = store.subscribeOnce(() => {
+      doSomethingElse();
+  });
 
-```typescript
-const unsubscribe = store.subscribeOnce(() => {
-    doSomethingElse();
-});
+  // Cancel the trigger by unsubscribing:
+  unsubscribe(); // 'doSomethingElse' won't get called.
+  ```
 
-// Cancel the trigger by unsubscribing:
-unsubscribe(); // 'doSomethingElse' won't get called.
-```
+- **Subscribe only once to a specific key**
 
-##### One-time subscription to a specific key
+  Listen until a specific item gets updated. The value is guaranteed to be on the updated state object. This example uses a `state.todos` array:
 
-Listen until a specific item gets updated, then use it. The value is guaranteed to be on the updated state object. We'll use `state.todos` in our example.
+  ```ts
+  const unsubscribe = store.subscribeOnce((state) => {
+      const todos = state.todos;
+      doSomethingWith(todos);
+  }, 'todos');
 
-```typescript
-const unsubscribe = store.subscribeOnce((state) => {
-    const todos = state.todos;
-    doSomethingWith(todos);
-}, 'todos');
+  // You can pre-emptively skip the state-update by unsubscribing first:
+  unsubscribe(); // 'doSomethingElse' won't get called when state updates
+  ```
 
-// You can pre-emptively skip the state-update by unsubscribing first:
-unsubscribe(); // 'doSomethingElse' won't get called when state updates
-```
+- **Subscribe once to a specific value**
 
-##### One-time subscription to a specific value
+  Listen until a specific item gets updated with a _a specific value_.\
+  The value is guaranteed to be on the updated state object. We'll use `state.counter` for our example.
 
-Listen until a specific item **gets updated with a specific value**, then use it.\
-As above, the value is guaranteed to be on the updated state object. We'll use `state.counter` for our example.
+  ```ts
+  const unsubscribe = store.subscribeOnce(
+    // `state.counter` >= 3 here because of the extra parameters below.
+    // This gets called once.
+    ({ counter }) => doSomethingWith(counter), 
 
-```typescript
-const unsubscribe = store.subscribeOnce(
-  // `state.counter` >= 3 here because of the extra parameters below
-  (state) => {
-    // no more updates after this gets triggered once
-    const counter = state.counter;
-    doSomethingWith(counter); 
-  }, 
+    // tell us when "state.counter" changes
+    'counter', 
 
-  // tell us when "state.counter" changes
-  'counter', 
+    // only call the listener if "state.counter" is 3 or greater
+    (count) => count >= 3 
+  );
 
-  // only call the listener if "state.counter" is 3 or greater
-  (count) => count >= 3 
-);
+  // Pre-emptively skip the state-update by unsubscribing first:
+  unsubscribe(); // 'doSomethingElse' won't get called when state updates
+  ```
 
-// Pre-emptively skip the state-update by unsubscribing first:
-unsubscribe(); // 'doSomethingElse' won't get called when state updates
-```
+### Tactical Subscriptions
 
-#### Tactical Subscription
+Use `subscribeToKeys` to listen for updates to specific keys.
 
-You can target updates to very specific keys. Like `subscribeOnce`, you can refine how these updates are handled.
+#### Listen for ANY change to specific keys
 
-##### Listen for ANY change to specific keys
+Trigger updates whenever your specified keys are updated.
+_At least one_ value is guaranteed to be present, because the state object can be updated in any order by any part of your app.
 
-Trigger updates whenever your specified keys are updated. _At least one_ value is guaranteed to be present, because the state object can be updated in any order by any part of your app.
-
-```typescript
+```ts
 const unsubscribe = store.subscribeToKeys(
   (state) => {
     // This will continue to receive updates for both keys until you unsubscribe
@@ -323,32 +329,35 @@ const unsubscribe = store.subscribeToKeys(
 unsubscribe(); 
 ```
 
-**Note**: BOTH values will be present if your app does a `store.multiple( ... )` update that includes both keys.
+> [!Note]
+> BOTH values will be present if your app does a `store.multiple( ... )` update that includes both keys.
 
-##### Listen for SPECIFIC VALUES on specific keys
+#### Listen for SPECIFIC CHANGES to specific keys
 
 You can mitigate uncertainty by providing a value-checker. While it doesn't guarantee that your keys will be present, you may at least ensure that the keys have the values you want on them.
 
-```typescript
+```ts
 const unsubscribe = store.subscribeOnce(
-  // `state.counter` >= 3 here because of the extra parameters below
+  // LISTENER: Run this when state.todos and/or state.counter is changed
   (state) => {
-    // "todos" OR "counter" may be undefined. If they aren't, they will meet
-    // the conditions specified in our value-checker
-    const {todos, counter} = state; 
+    // EITHER "todos" OR "counter" may be undefined. At least one key
+    // is guaranteed to be present.
+    const {todos, counter} = state;
+    // If "todos" is present, it will have more than 3 todos (see VALUE-CHECKER below) 
     if (todos) doSomethingWith(todos);
+    // If "counter" is present, it will be >= 3 (see VALUE-CHECKER below) 
     if (counter) doSomethingElseWith(counter);
   }, 
 
-  // KEYS: tell us when "state.counter" OR "state.todos" changes
+  // KEYS: listen for changes to "state.counter" OR "state.todos"
   ['todos', 'counter'], 
   
-  // VALUE-CHECKER: make sure our keys have the values we want
+  // VALUE-CHECKER: make sure the keys have specific values
   (key, value) => {
-    // update only when "state.counter" is 3 or greater
+    // call LISTENER only when "state.counter" changes to 3 or greater
     if (key === "counter") return value >= 3; 
     
-    // update when state has more than 3 todos added
+    // call LISTENER when state has more than 3 todos added
     if (key === "todos") return value.length > 3; 
   } 
 );
@@ -357,19 +366,19 @@ const unsubscribe = store.subscribeOnce(
 unsubscribe(); // 'doSomethingElse' won't get called when state updates
 ```
 
-### Preserving state
+## Preserving state
 
 Since this is an unopinionated library, you can preserve your state data in any manner that best-fits your application. The `.getState()` method returns a plain Javascript Object, which you can `JSON.stringify` and write to `localStorage` (in a browser) or to some database or other logging function. The `ApplicationStore` class now provides a `serialize` method that returns a string representation of your state:
 
-```typescript
+```ts
 store.serialize(); // JSON string: "{\"counter\": 0 ... }"
 ```
 
 Of course, this is only useful if your objects are serializable. If you store complex objects with their own methods and such -- and you _can_ -- this will not preserve their methods.
 
-#### LocalStorage with serialize
+### LocalStorage with serialize
 
-```typescript
+```ts
 // EXAMPLE: save and load user state with localstorage
 localStorage.setItem("user", store.serialize()); // save current state
 
@@ -384,24 +393,24 @@ You can use the return value of `serialize` wherever it makes the most sense for
 
 ## Reference
 
-### **createState**
+### createState
 
-```typescript
+```ts
   createState(state: { [x:string]: any }): ApplicationStore
 ```
 
-* Default Library export. Creates a new `state` instance using the supplied initial state.\
+- Default Library export. Creates a new `state` instance using the supplied initial state.\
   Parameters:
-  * `initialState`: Your state-representation (an object-literal representing every key and initial value for your global state).
-* **Returns**: a [state instance](#applicationstore-class "Application Store class").
+  - `initialState`: Your state-representation (an object-literal representing every key and initial value for your global state).
+- **Returns**: a [state instance](#applicationstore "ApplicationStore").
 
 ---
 
-### ApplicationStore (Class)
+### ApplicationStore
 
-* State instance returned from `createState()`. View full API and method explanations [here](/readme-pages/API.md).
+State instance returned from `createState()`. View full API and method explanations in [API](/readme-pages/API.md).
 
-```typescript
+```ts
 class ApplicationStore {
   getState(): StoreInstance;
   
@@ -434,16 +443,17 @@ class ApplicationStore {
 
 ### Store Instance
 
-An [`ApplicationStore`](#applicationstore-class) instance with full subscription capabilities. This is distinct from your [_**state representation**_](#state-representation).
+An [`ApplicationStore`](#applicationstore) instance with full subscription capabilities. This is distinct from your [_**state representation**_](#state-representation).
 
-**Hint:** the `Store` manages your `state representation`.
+> [!TIP]
+> The `Store` manages your `state representation`.
 
 ---
 
 ### State Representation
 
 The plain JS object literal that you pass into `createState`.\
-This object IS your application _state_: it contains any properties you want to track and update in an application. You manage your **state representation** via the [`Store Instance`](#state-instance).
+This object IS your application _state_: it contains any properties you want to track and update in an application. You manage your **state representation** via the [`Store Instance`](#store-instance).
 
 ---
 
@@ -451,8 +461,8 @@ This object IS your application _state_: it contains any properties you want to 
 
 A `listener` is a function that reacts to state updates. It expects one or two arguments:
 
-* `state: { [x:string]: any }`: the updated `state` object.
-* `updatedItems: string[]`: a list of keys (`state` object properties) that were just updated.
+- `state: { [x:string]: any }`: the updated `state` object.
+- `updatedItems: string[]`: a list of keys (`state` object properties) that were just updated.
 
 ---
 
@@ -460,7 +470,7 @@ A `listener` is a function that reacts to state updates. It expects one or two a
 
 A basic Listener receives the updated application state, and the names of any changed properties, as below:
 
-```typescript
+```ts
 // Assume you have a local copy of some state value here
 let localTodos = [];
 
@@ -484,9 +494,9 @@ You can define your `listener` where it makes the most sense (i.e. as either a s
 
 This is a purely in-memory state manager: it does NOT
 
-* Serialize data and/or interact with other storage mechanisms (e.g. `localStorage` or `sessionStorage`).
-* Prevent you from implementing any additional storage mechanisms
-* Conflict with any other state managers
+- Serialize data and/or interact with other storage mechanisms (e.g. `localStorage` or `sessionStorage`).
+- Prevent you from implementing any additional storage mechanisms
+- Conflict with any other state managers
 
 ---
 
@@ -515,64 +525,84 @@ You can think of it as a light cross between [Redux](https://www.npmjs.com/packa
 
 ### How is it similar to Redux?
 
-* You can define a unique, shareable, subscribable Application State
-* Uses a `createState` function helper for instantiating the state
-* Uses `getState`, and `subscribe` methods (for getting a copy of current state, and listening to updates).
-  * `subscribe` even returns an unsubscribe function!
+- You can define a unique, shareable, subscribable Application State
+- Uses a `createState` function helper for instantiating the state
+- Uses `getState`, and `subscribe` methods (for getting a copy of current state, and listening to updates).
+  - `subscribe` even returns an unsubscribe function!
 
 ---
 
 ### How is it different from Redux?
 
-* **You can use it in a pure NodeJS environment**
-* No `Actions`, `dispatchers`, or `reducers`
-* You can use with any UI framework like ReactJS, SvelteJS, or Vue
-* ~~No serialization~~ You can request the current state as a JSON string, but the instance doesn't care what you do with it.
+- **You can use it in a pure NodeJS environment**
+- No `Actions`, `dispatchers`, or `reducers`
+- You can use with any UI framework like ReactJS, SvelteJS, or Vue
+- ~~No serialization~~ You can request the current state as a JSON string, but the instance doesn't care what you do with it.
 
 ### 1. Why did you choose that name?
 
-    I didn't. But I like it.
+```plaintext
+I didn't. But I like it.
+```
+
 ---
 
 ### 2. Does this need React or Redux?
 
-    Nope
+```plaintext
+Nope
+```
+
 This is a UI-agnostic library, hatched when I was learning React and (patterns from) Redux. The first implementation came directly from [(redux creator) Dan Abramov's egghead.io tutorial](https://egghead.io/courses/getting-started-with-redux "Getting started with Redux"), and was much heavier on Redux-style things. Later iterations became simpler, eventually evolving into the current version.
 
 ---
 
 ### 3. Can I use this in [React, Vue, Svelte ... ]?
 
-    Yes.
+```plaintext
+Yes.
+```
 
 This is just a JS class. It can be restricted to [a single component](/readme-pages/USAGE.md#usage---examples), or used for an entire UI application, or even in a command line program. I have personally used it in NodeJS projects, as well as to pass data between a React App and JS Web Workers.
 
 _No restrictions; only Javascript._
 
+For a ReactJS example, see [ReactJS State Subscription via useEffect](./readme-examples/README-REACTJS.md). For usage with VueJS, see [VueJS mixin example](./readme-examples/README-VUEJS.md)
+
 ---
 
 ### 4. Why not just use redux?
 
-    Because this is MUCH simpler to learn and implement.
+```plaintext
+Because this is
 
-* ~~Because _clearly_, Javascript needs MOAR solutions for solved problems.~~
-* Not everyone needs redux. Not everyone needs _raphsducks_, either
-* In fact, _not everyone needs state_.
+1. Smaller 
+2. Simpler to learn
+3. Simpler implement
+```
 
-Redux does a good deal more than _raphsducks_'s humble collection of lines. I wanted something lightweight with a pub/sub API. It allows me to quickly extend an application's state without getting into fist-fights with opinionated patterns.
+- ~~Because _clearly_, Javascript needs MOAR solutions for solved problems.~~
+- Not everyone needs redux. Not everyone needs _raphsducks_, either
+- In fact, _not everyone needs state_.
+
+Redux does a good deal more than _raphsducks_'s humble collection of lines. I wanted something lightweight with a pub/sub API.
 
 ---
 
 ### 5. Anything else I should know?
 
-As with many JS offerings, I acknowledge that it _could be_ the result of thinking about a problem wrong: use at your discretion.
+- Keep your state simple.
+  - For example, put user info in one state, and user-created content (such as blog posts, or a shopping cart) in another. This keeps your updates zippy, and limits the number of subscribers to each state instance.
+- Only subscribe when you need to.
+  - Use `getState` to read and act upon state values. Subscribe when you need to respond to a state update (for example, changing a UI value, or triggering some other action).
+- As with many JS offerings, I acknowledge that it _could be_ the result of thinking about a problem wrong: use at your discretion.
 
 ## Development
 
 The core class remains a plain JS object, now with a single external dependency:
 
-* In `v2`, the library added `rxjs`.
-* In `v3`, `rxjs` was replaced with `ImmutableJS`
+- In `v2`, the library added `rxjs`.
+- In `v3`, `rxjs` was replaced with `ImmutableJS`
 
 ```bash
 $. git clone <https://github.com/JACK-COM/raphsducks.git> && npm install
@@ -583,3 +613,17 @@ Run tests:
 ```bash
 $. npm test
 ```
+
+## Release notes
+>
+> - Version `1.X.X` simplifies the library and introduces breaking changes.
+> If you're looking for the `0.X.X` documentation (I am _so sorry_), [look here](/README-v-0XX.md),
+> - Version `1.1.X`
+>   - Adds `typescript` support
+>   - Adds new `subscribeOnce` function
+> - Version `2.X.X`
+>   - Introduces `rxjs` under the hood
+>   - Updates `subscribeToKeys`
+> - Version `3.X.X`
+>   - Replaces `rxjs` with `immutablejs` for maximum profit
+>

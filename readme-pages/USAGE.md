@@ -2,18 +2,24 @@
 
 ## Table of Contents
 
-* [Core Concepts](#usage---core-concepts)
-  * [Creating an instance](#1-creating-your-state-instance)
-  * [Using the instance](#2-using-the-state-instance)
-  * [Accessing state values](#3-access-values-in-the-current-state)
-* [Typescript and Type assertions](#usage---property-type-assertions)
-* [Examples for VueJS and ReactJS](#usage---examples)
+- [How to use *raphsducks*](#how-to-use-raphsducks)
+  - [Table of Contents](#table-of-contents)
+  - [Usage - Core Concepts](#usage---core-concepts)
+    - [Create your state instance](#create-your-state-instance)
+    - [Use the state instance](#use-the-state-instance)
+    - [3. Access values in the current state](#3-access-values-in-the-current-state)
+      - [Read the current state](#read-the-current-state)
+      - [Subscribe to the current state](#subscribe-to-the-current-state)
+      - [Use a one-time subscription](#use-a-one-time-subscription)
+  - [Usage - Property Type Assertions](#usage---property-type-assertions)
+    - [Example: Initializing an array property](#example-initializing-an-array-property)
+  - [Usage - Examples](#usage---examples)
 
 ---
 
 ## Usage - Core Concepts
 
-### 1. Creating your state instance
+### Create your state instance
 
 Initialize your `state` in a file (or application component, or, you know, wherever)
 
@@ -31,7 +37,7 @@ const store = createState({
 export default store;
 ```
 
-### 2. Using the state instance
+### Use the state instance
 
 Use your `state` in a file (or application component, or, you know, wherever)
 
@@ -51,17 +57,18 @@ Use your `state` in a file (or application component, or, you know, wherever)
 
 ### 3. Access values in the current state
 
-#### i. Ad-hoc access
+#### Read the current state
+
+Check current state. You can get the entire state object,
 
 ```typescript
-    // a) Check current state. You can get the entire state object, 
     const currentState = store.getState(); // { todos: [...], someOtherValue: ... }
     
     // ...or deconstruct only what you need.
     const { todos } = store.getState();
 ```
 
-#### ii. Access the current state via subscription
+#### Subscribe to the current state
 
 ```typescript
     // Subscribe for updates: optionally use 'updatedKeys' to restrict local updates
@@ -82,29 +89,30 @@ Use your `state` in a file (or application component, or, you know, wherever)
     store.reset();
 ```
 
-#### iii. Access the current state via one-time subscriptions
+#### Use a one-time subscription
 
 ```typescript
     // Subscribe ONCE for updates. When the target 'key' is updated, your listener
     // will be triggered with only that value, and subsequently unsubscribed. 
-    // Below, we listen until 'state.someValue' is updated:
-    const listener = (someValue: number) => {
-        // ... do something with 'state.someValue'
+    // Below, we listen until 'state.numValue' is updated:
+    const listener = ({numValue}:{numValue: number}) => {
+        // ... do something with 'numValue'
     }
 
-    // Note: You can EITHER listen until 'state.someValue' gets updated,
-    store.subscribeOnce(listener, "someValue");
+    // Ex. 1: Wait until 'state.numValue' gets updated
+    store.subscribeOnce(listener, "numValue");
 
-    // OR listen until 'someValue' is set to a specific update value. 
-    // The example below will only fire when 'state.someValue === 3':
-    store.subscribeOnce(listener, "someValue", (v) => v === 3);
+    // Ex. 2: Wait until 'state.numValue === 3'
+    store.subscribeOnce(listener, "numValue", (v) => v === 3);
 ```
 
-> **NOTE:** Don't use uninstantiated keys at runtime, or you will get an error! Given our example
-> above, the following will fail since `invalidKey` wasn't in the arguments to `createState`:
+> [!NOTE]
+> Don't use uninstantiated keys at runtime, or you will get an error! The following
+> will throw an error if `invalidKey` is not in the initial state object:
 >
 > ```javascript
 > store.multiple({ wellThisIsNew: true, todos: [ ... ] })
+> // ERROR: 'wellThisIsNew' is not in this state instance
 > ```
 
 ---
@@ -113,34 +121,25 @@ Use your `state` in a file (or application component, or, you know, wherever)
 
 Some state properties will require type assertions at initialization, in order to prevent compile-time errors. This becomes necessary if you want to initialize properties as `null`, and only provide real values later in your application lifecycle.
 
-#### [✅] Example: Initializing an array property the Smart™ way
+### Example: Initializing an array property
+
+* ✅ Cast the property in the initialization parameter:
 
 ```typescript
-// Cast the property in the initialization parameter
-const store = createState({
-    someArray: ([] as number[])
-})
+const store = createState({ myNumbers: [] as number[] });
 
 // This works because the property is now expecting a list of numbers
-store.someArray([1,2,3]);
+store.myNumbers([1,2,3]);
 ```
 
-#### [❌] Example: Initializing an array property the *wrong* way
-
-The following will cause you untold sorrows and gnashing of teeth.
+* ❌ Initializing an array property without a type definition:
 
 ```typescript
-// Initialize an unspecified array type
-const store = createState({
-    someArray: []
-})
+// In this example, `myNumbers` initializes as type `never[]`
+const store = createState({ myNumbers: [] });
 
 // Pushing a list of numbers will fail because 'number' cannot be assigned to type 'never'
-store.someArray([1,2,3]);
-
-// Ugly workaround -> this will actually suppress the errors, but you will have to do it
-// everywhere that you use this property, which makes for some ugly code
-store.someArray(([1,2,3] as never[]))
+store.myNumbers([1,2,3]); // Type error: cannot assign `number` to `never`
 ```
 
 ---
@@ -149,5 +148,5 @@ store.someArray(([1,2,3] as never[]))
 
 Some illustrative examples using popular front-end frameworks are provided below:
 
-* [React: Using Functional Components](/readme-examples/react-functional-subscription.md)
-* [VueJS (2x, 3x) Mixin](/readme-examples/vue-subscriber-mixin.md)
+* [React: Using Functional Components](/readme-examples/README-REACTJS.md)
+* [VueJS (2x, 3x) Mixin](/readme-examples/README-VUEJS.md)
