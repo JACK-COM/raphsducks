@@ -11,6 +11,5 @@ compress: $(TOP_LEVEL)
 	make clear-screen
 	@echo "Compressing all JS files $(ROOT_DIR) ...\n\n"
 	@$(foreach file, $(wildcard $(ROOT_DIR)/*.js), echo "\n + Compressing $(file)"; $(MIN) $(file) -- $(file);)
-	@echo 
-	@echo "All files compressed!"
+	printf "\nAll files compressed!"
 	@exit 0

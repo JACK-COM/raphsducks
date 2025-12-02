@@ -18,7 +18,9 @@
   "license": "WTFPL",
   "scripts": {
     "clean": "rm -rf lib/",
-    "build": "npm run clean && tsc && make compress",
+    "build": "tsc",
+    "prebuild": "npm run clean",
+    "postbuild": "make compress",
     "deploy": "npm run build && npm pack && npm publish",
     "deploy:black": "npm run build && npm pack && npm publish --tag black",
     "test-watch": "jest --watchAll --testTimeout=300000 --detectOpenHandles",
@@ -26,16 +28,17 @@
     "preview": "npm run build && npm pack && rm -rf *.tgz",
     "prepublish": "npm run build",
     "postpublish": "git push origin --tags",
-    "prepare": "husky"
+    "prepare": "husky",
+    "bamp-patch": "npm version patch -m \"%s\"",
+    "bamp-minor": "npm version minor -m \"%s\"",
+    "bamp-major": "npm version major -m \"%s\""
   },
   "devDependencies": {
-    "@babel/preset-env": "^7.28.5",
-    "@babel/preset-typescript": "^7.28.5",
     "@types/jest": "^30.0.0",
     "husky": "^9.1.7",
-    "jest": "^30.2.0",
     "prettier": "^3.7.3",
-    "ts-loader": "^9.5.4",
+    "ts-jest": "^29.4.6",
+    "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
   },
   "dependencies": {

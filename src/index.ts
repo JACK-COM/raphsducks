@@ -178,6 +178,9 @@ class _ApplicationStore<T extends Record<string, any>> {
   }
 }
 
+// Make listener- and unsubscriber-function types available
+export type { ListenerFn, Unsubscriber } from "./types";
+
 /** Passed ref for retaining type definitions */
 const ApplicationStore = _ApplicationStore as { new <T>(s: T): Store<T> };
 
