@@ -2,7 +2,7 @@ import createState from "./index";
 import { Unsubscriber } from "./types";
 
 const initialState = {
-  todos: [] as any[],
+  todos: [] as unknown[],
   someBoolean: false as boolean | null,
   someString: ""
 };
@@ -53,7 +53,7 @@ describe("Application State Manager", () => {
   it("Updates a property ONCE if no other properties change", () => {
     const listener = jest.fn();
     const unsub = DefaultState.subscribe(listener);
-    expect(DefaultState.subscribers.length).toBe(1);
+    expect(DefaultState.subscribers).toBe(1);
 
     DefaultState.someBoolean(true);
     DefaultState.someBoolean(true); // call it twice
@@ -62,14 +62,14 @@ describe("Application State Manager", () => {
     expect(DefaultState.getState().someBoolean).toStrictEqual(true);
     expect(listener).toHaveBeenCalledTimes(1);
     unsub();
-    expect(DefaultState.subscribers.length).toBe(0);
+    expect(DefaultState.subscribers).toBe(0);
   });
 
   it("Updates multiple properties before notifying subscribers once", () => {
     const listener = jest.fn();
-    expect(DefaultState.subscribers.length).toBe(0);
+    expect(DefaultState.subscribers).toBe(0);
     const unsub = DefaultState.subscribe(listener);
-    expect(DefaultState.subscribers.length).toBe(1);
+    expect(DefaultState.subscribers).toBe(1);
 
     let st = DefaultState.getState();
     expect(st.someBoolean).toStrictEqual(false);
@@ -80,7 +80,7 @@ describe("Application State Manager", () => {
       todos: [1, 2, 4]
     });
     unsub();
-    expect(DefaultState.subscribers.length).toBe(0);
+    expect(DefaultState.subscribers).toBe(0);
 
     st = DefaultState.getState();
     expect(st.someBoolean).toStrictEqual(true);
@@ -135,7 +135,7 @@ describe("Application State Manager", () => {
     const cleanup = () => {
       u1();
       u2();
-      expect(UniqueState.subscribers.length).toBe(0);
+      expect(UniqueState.subscribers).toBe(0);
     };
 
     // Update a different key
@@ -351,17 +351,17 @@ describe("Application State High Intensity", () => {
       i += 1;
     } while (i < limit);
     expect(unsubscribers.length).toStrictEqual(limit);
-    expect(isolated.subscribers.length).toStrictEqual(limit);
+    expect(isolated.subscribers).toStrictEqual(limit);
     expect(i).toStrictEqual(limit);
     expect(controlSpy).toHaveBeenCalledTimes(0);
     expect(lastSpy).toHaveBeenCalledTimes(0);
     i = 0;
   });
 
-  it(`Handles a ${limit} jest spies update`, () => {
+  it(`Handles a ${limit * 10} jest spies update`, () => {
     const cleanup = isolated.subscribe(control.listener);
     console.log(
-      `start ${limit * 10} updates for ${isolated.subscribers.length} listeners`
+      `start ${limit * 10} updates for ${isolated.subscribers} listeners`
     );
     // make changes
     do {

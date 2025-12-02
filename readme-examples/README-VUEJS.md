@@ -1,5 +1,7 @@
 # VueJS mixin example
-This is a VueJS mixin that connects any implementing component to the app state. It is provided for illustrative purposes.
+
+This VueJS mixin connects a component to a state.
+The component will subscribe on mount, and unsubscribe when removed from the DOM.
 
 ```typescript
 import AppStore from "./path/to/my/state.js";
@@ -44,6 +46,6 @@ const GlobalStateMixin = {
 export default GlobalStateMixin;
 ```
 
-When implemented, it will subscribe the component on mount, and unsubscribe when the component is removed from the DOM.
-
-**Note:** You don't *need* to subscribe to a `state` instance in order to either read from or write to it. 
+> [!NOTE]
+> You don't *need* to subscribe to a `state` instance in order to either read from or write to it.
+> Use `state.getState()` to read the current properties of state at any time.

@@ -1,6 +1,6 @@
 {
   "name": "@jackcom/raphsducks",
-  "version": "3.0.3",
+  "version": "3.1.0",
   "description": "A lightweight pubsub (publish-subscribe) state manager.",
   "main": "lib/index.js",
   "keywords": [
@@ -18,7 +18,9 @@
   "license": "WTFPL",
   "scripts": {
     "clean": "rm -rf lib/",
-    "build": "npm run clean && tsc && make compress",
+    "build": "tsc",
+    "prebuild": "npm run clean",
+    "postbuild": "make compress",
     "deploy": "npm run build && npm pack && npm publish",
     "deploy:black": "npm run build && npm pack && npm publish --tag black",
     "test-watch": "jest --watchAll --testTimeout=300000 --detectOpenHandles",
@@ -26,19 +28,20 @@
     "preview": "npm run build && npm pack && rm -rf *.tgz",
     "prepublish": "npm run build",
     "postpublish": "git push origin --tags",
-    "prepare": "husky"
+    "prepare": "husky",
+    "bamp-patch": "npm version patch -m \"%s\"",
+    "bamp-minor": "npm version minor -m \"%s\"",
+    "bamp-major": "npm version major -m \"%s\""
   },
   "devDependencies": {
-    "@babel/preset-env": "^7.26.9",
-    "@babel/preset-typescript": "^7.26.0",
-    "@types/jest": "^29.5.14",
+    "@types/jest": "^30.0.0",
     "husky": "^9.1.7",
-    "jest": "^29.7.0",
-    "prettier": "^3.5.3",
-    "ts-loader": "^9.5.2",
-    "typescript": "^5.8.2"
+    "prettier": "^3.7.3",
+    "ts-jest": "^29.4.6",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
   },
   "dependencies": {
-    "immutable": "^5.0.3"
+    "immutable": "^5.1.4"
   }
 }

@@ -1,37 +1,20 @@
 # ReactJS State Subscription via useEffect
 
-The following example shows a functional component that subscribes to a global state instance.\
-It is shown for illustrative purposes: you can adapt it as needed.
-
-## Table of Contents
+The following examples show functional components that use a `raphsducks` state instance.\
+You can adapt them to your use-case.
 
 - [ReactJS State Subscription via useEffect](#reactjs-state-subscription-via-useeffect)
-  - [Table of Contents](#table-of-contents)
   - [Important: Define Subscriptions inside useEffect](#important-define-subscriptions-inside-useeffect)
-  - [Before we begin](#before-we-begin)
-  - [EXAMPLE 1: Subscribe to a single state](#example-1-subscribe-to-a-single-state)
-  - [EXAMPLE 2: Subscribe to a one or more keys in state](#example-2-subscribe-to-a-one-or-more-keys-in-state)
-  - [EXAMPLE 3: Hooks and multiple state instances](#example-3-hooks-and-multiple-state-instances)
+  - [EXAMPLE: Subscribe to a single state](#example-subscribe-to-a-single-state)
+  - [EXAMPLE: Subscribe to a one or more keys in state](#example-subscribe-to-a-one-or-more-keys-in-state)
+  - [EXAMPLE: Subscribe to multiple state instances](#example-subscribe-to-multiple-state-instances)
 
 ## Important: Define Subscriptions inside useEffect
 
-> ⚠️ Your `unsubscribe` function must be defined inside a `useEffect` function, or your application may develop memory leaks due to lingering subscriptions.
+> [!WARNING]
+> Your `unsubscribe` function must be defined inside a `useEffect` function, or your application may develop memory leaks due to lingering subscriptions. This is shown in the following examples.
 
-## Before we begin
-
-The following examples reference a fictional `userStore` that has been created/exported from somewhere in your app. Let's assume that the `userStore.getState()` returns something like this:
-
-```typescript
-{
-    email: "person@email.com", // string
-    authenticated: true // boolean
-    // ... more properties
-}
-```
-
-Now we can use this to experiment with an app's authentication state.
-
-## EXAMPLE 1: Subscribe to a single state
+## EXAMPLE: Subscribe to a single state
 
 This example shows how you can subscribe to *every* change in `userStore`.
 
@@ -82,57 +65,61 @@ export default function Login() {
 }
 ```
 
-## EXAMPLE 2: Subscribe to a one or more keys in state
+## EXAMPLE: Subscribe to a one or more keys in state
 
 If you only care about updates to *some* keys, use `subscribeToKeys`. The listener is the same, but we'll pass along the keys we want to be notified about. Your listener will only be called when those keys are updated.
 
 ```jsx
 import { useEffect, useState } from "react";
-import userStore from "./path/to/my/store-instance";
+import createState from "@jackcom/raphsducks"
+
+// In a real world example, this would be exported from a shared module.
+const userStore = createState({
+    authenticated: false,
+    email: null as string | null
+})
 
 /** @route A simple Login route */
 export default function Login() {
     const [loggedIn, setLoggedIn] = useState(false);
+    const onStateChange = (
+            updates: Partial<ReturnType<typeof myStore.getState()>>, 
+            updatedKeys: string[]
+        ) => {
+        // When this is called, `updatedKeys` is guaranteed to include 
+        // "authenticated", so you don't need to check. 
+        // It is also guaranteed to be "true" because of the optional 
+        // third argument used in "subscribeToKeys".
+        setLoggedIn(updates.authenticated);
+    }
     
-    useEffect(
-        () => {
-            // Listener defined here for readability. It MUST be
-            // defined inside 'useEffect' to avoid memory leaks.
-            const listener = (
-                    updates: Partial<ReturnType<typeof myStore.getState()>>, 
-                    updatedKeys: string[]
-                ) => {
-                    // We know that `updatedKeys` includes "authenticated"
-                    // so we don't need to check. We also know it is "true" 
-                    // because of the optional third argument used below.
-                    setLoggedIn(updates.authenticated);
-                }
-
-            // 'subscribeToKeys' returns a function that will be used by
-            //  'useEffect' to unsubscribe this component on unmount. 
-            return store.subscribeToKeys(
-                listener, 
-                
-                // Add the keys you want to subscribe to here
-                ["authenticated"],
-                
-                // (OPTIONAL) you can use this third argument to perform 
-                // value-checking outside the listener. This will ensure your 
-                // listener only gets called when keys have specific values. 
-                (stateKey, val) => {
-                    // The function gets a key and current value, and must 
-                    // return a boolean. It will be called for every key
-                    // you pass into the "keys" array above
-                    if (stateKey === "authenticated") return val === true;
-                }
-            )
-        }, []
-    )
+    useEffect(() => {
+        // 'subscribeToKeys' returns a function that will be used by
+        // 'useEffect' to unsubscribe this component on unmount. It MUST be
+        // defined inside 'useEffect' to avoid memory leaks.
+        return store.subscribeToKeys(
+            // Call this when state changes
+            onStateChange, 
+            
+            // Add the keys you want to subscribe to here
+            ["authenticated"],
+            
+            // (OPTIONAL) Use this third argument to perform 
+            // value-checking outside the listener. This example ensures the 
+            // listener only gets called when "authenticated" === true
+            (stateKey, val) => {
+                // The function gets a key and current value, and must 
+                // return a boolean. It will be called for every key
+                // you pass into the "keys" array above
+                if (stateKey === "authenticated") return val === true;
+            }
+        )
+    }, [])
 
     // Redirect to some authenticated page if user logged in
     if (loggedIn) return <Navigate to="/dashboard" />
   
-    // Otherwise, return some pretty UI
+    // Otherwise, return a login form
     return ( 
         <form>
             {/* ✨ CSS and HTML ✨ */}
@@ -143,10 +130,7 @@ export default function Login() {
 
 ---
 
-## EXAMPLE 3: Hooks and multiple state instances
-
-> Note: **This is a preferred way to deal with subscriptions**, because it limits the
-> number of state subscribers at any given time.
+## EXAMPLE: Subscribe to multiple state instances
 
 If you have multiple state instances, you can condense multiple subscriptions into
 a single function that handles unsubscription. This is a popular pattern when using hooks
@@ -172,21 +156,26 @@ export default function useMultipleSubscriptions() {
     // creating multiple subscriptions at once.
     useEffect(
         () => {
-            // User Listener + store unsubscription
-            const userListener = (updates) => setUsername(updates.username)
-            const unsubUser = userStore.subscribeToKeys(
-                userListener, 
+            // User state subscription
+            const unsubscribeUser = userStore.subscribeToKeys(
+                ({ username }) => setUsername(username), 
                 ["username"]
             )
 
-            // Products Listener + store unsubscription
+            // Favorites state subscription
+            const unsubscribeFavorites = favoritesStore.subscribeToKeys(
+                ({ favorites }) =>  setFavorites(favorites), 
+                ["favorites"]
+            )
+
+            // Products state listener and subscription
             const productsListener = ({ saleItems, focusedProductSlug }) => {
                 // Check in case one value is missing, since your app
                 // may not update both simultaneously
                 if (saleItems) setOnSale(saleItems)
                 if (focusedProductSlug) setLastViewed(focusedProductSlug)
             }
-            const unsubProducts = productsStore.subscribeToKeys(
+            const unsubscribeProducts = productsStore.subscribeToKeys(
                 productsListener,
                 
                 // subscribe to these two keys
@@ -198,30 +187,19 @@ export default function useMultipleSubscriptions() {
                 }
             )
 
-            // Favorites Listener + store unsubscription
-            const favesListener = (updates) => 
-                setFavorites(updates.favorites)
-            const unsubFavorites = favoritesStore.subscribeToKeys(
-                favesListener, 
-                ["favorites"]
-            )
-
             // ...AND MANY MORE!
-            
 
-            // Now return a function that calls all unsubscribers at once.
-            // Whenever the hook gets unmounted, all subscriptions above
-            // will end.
+            // Return a function that calls all unsubscribers at once.
+            // When the hook gets unmounted, all subscriptions will end.
             return () => {
-                unsubUser();
-                unsubProducts();
-                unsubFavorites();
+                unsubscribeUser();
+                unsubscribeProducts();
+                unsubscribeFavorites();
             }
     }, [])
 
     // Expose hook state to other components
-    return {username, onSale, lastViewed, shopFriends}
+    return { username, onSale, lastViewed, shopFriends }
     
 }
-
 ```

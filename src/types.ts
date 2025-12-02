@@ -30,7 +30,7 @@ export type Store<S> = {
   /**
    * Subscribe to the state instance. Returns an `unsubscribe` function
    * @param listener Listener function
-   * @returns {() => void} Unsubscribe function
+   * @returns {Unsubscriber} Unsubscribe function
    */
   subscribe(listener: ListenerFn<Partial<S>>): Unsubscriber;
 
@@ -62,7 +62,7 @@ export type Store<S> = {
     keys: K[],
     valueCheck?: (key: K, expectedValue: S[K]) => boolean
   ): Unsubscriber;
-} & { [k in keyof S]: (u: S[k]) => void };
+} & { [k in keyof S]: StoreUpdaterFn<S[k]> };
 
 /** Function for updating a state key */
 export type StoreUpdaterFn<T> = { (value: T): void };

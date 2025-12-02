@@ -6,19 +6,26 @@ Any mention of `state` is a reference to your initial state, which you pass into
 ## Instance Methods
 
 `getState(): state`
-* Get [a copy of] the current application state 
+
+* Get [a copy of] the current application state
+
 ```typescript
   getState(): state;
 ```
+
 `multiple(changes): void`:
+
 * Update multiple keys in state before notifying subscribers.
+
 ```typescript
   multiple(changes: Partial<state>): void;
 ```
 
 `reset(clearSubscribers?): void`
+
 * Reset the instance to its initialized state while preserving subscribers.
 * Pass `true` into the function if you want to also clear all state subscribers.
+
 ```typescript
   /**
    * @param {boolean} clearSubscribers -> when true, resets state AND removes
@@ -28,7 +35,9 @@ Any mention of `state` is a reference to your initial state, which you pass into
 ```
 
 `subscribe(fn): unsubscribeFn`
+
 * Subscribe to the state instance. Returns an `unsubscribe` function
+
 ```typescript
   /**
    * @param {Function} listener -> function to call on state update
@@ -39,8 +48,10 @@ Any mention of `state` is a reference to your initial state, which you pass into
 ```
 
 `subscribeOnce(l: ListenerFn, key: string, valueCheck?: (v: any) => boolean): unsubscribeFn`
-* Subscribe until a specified `key` is updated, then unsubscribe. 
+
+* Subscribe until a specified `key` is updated, then unsubscribe.
 * Optionally takes a value-checker in case you want to subscribe until a particular value is received.
+
 ```typescript
   /**
    * @param {Function} listener -> Listener function
@@ -58,8 +69,10 @@ Any mention of `state` is a reference to your initial state, which you pass into
 ```
 
 `subscribeToKeys(l: ListenerFn, keys: string[], valueCheck?: (v: any) => boolean)`
-* Subscribe to changes applied to a subset of state properties. 
+
+* Subscribe to changes applied to a subset of state properties.
 * Optionally takes a value-checker in case you want to listen for particular values.
+
 ```typescript
   /**
    * @param {Function} listener -> Listener function
@@ -78,6 +91,7 @@ Any mention of `state` is a reference to your initial state, which you pass into
 ---
 
 ## Additional notes
+
 **Note:** In addition to the listed values, any key in your initial state will be turned into an instance method. For example:
 
 ```typescript
