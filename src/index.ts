@@ -14,7 +14,7 @@ class _ApplicationStore<T extends Record<string, any>> {
   private ref: T | null = null;
 
   /** @legacy Number of state Subscribers/Listeners */
-  subscribers = { length: 0 };
+  subscribers = 0;
 
   constructor(initialState: T) {
     if (Object.keys(initialState).length < 1) {
@@ -26,7 +26,7 @@ class _ApplicationStore<T extends Record<string, any>> {
     // Turn every key in the `state` representation into a method on the instance.
     for (let key in initialState) {
       // create a type that represents initialState[key]
-      type UpdateValue = (typeof initialState)[typeof key];
+      type UpdateValue = T[typeof key];
       const updater = (value: UpdateValue | null = null): void => {
         const updated = { [key]: value } as T;
         return this.updateState(updated, [key]);
@@ -68,11 +68,11 @@ class _ApplicationStore<T extends Record<string, any>> {
    */
   subscribe(listener: ListenerFn<T>): Unsubscriber {
     this._subscribers.add(listener);
-    this.subscribers.length = this._subscribers.size;
+    this.subscribers = this._subscribers.size;
 
     return () => {
       this._subscribers.delete(listener);
-      this.subscribers.length = this._subscribers.size;
+      this.subscribers = this._subscribers.size;
     };
   }
 
@@ -142,7 +142,7 @@ class _ApplicationStore<T extends Record<string, any>> {
       // reset state to initial values without notifying subscribers
       this.state = Map(this.ref as T);
       this._subscribers.clear();
-      this.subscribers.length = 0;
+      this.subscribers = 0;
     } else this.multiple(this.ref as T);
   }
 
