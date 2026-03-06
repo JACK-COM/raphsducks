@@ -36,12 +36,12 @@
   "devDependencies": {
     "@types/jest": "^30.0.0",
     "husky": "^9.1.7",
-    "prettier": "^3.7.3",
+    "prettier": "^3.8.1",
     "ts-jest": "^29.4.6",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "immutable": "^5.1.4"
+    "immutable": "^5.1.5"
   }
 }
