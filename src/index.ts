@@ -41,7 +41,7 @@ class _ApplicationStore<T extends Record<string, any>> {
    * @returns String representation of state
    */
   serialize() {
-    return JSON.stringify(this.getState());
+    return this.state.toJSON();
   }
 
   /** Get [a copy of] the current application state */
