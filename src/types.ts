@@ -62,6 +62,13 @@ export type Store<S> = {
     keys: K[],
     valueCheck?: (key: K, expectedValue: S[K]) => boolean
   ): Unsubscriber;
+
+  /** 
+   * Returns a shallow conversion of the state as a string. Accepts
+   * a user-modified version of the state (for example, if you want
+   * to manually preserve or convert Sets and Maps)
+   */
+  serialize(modified?: any): string
 } & { [k in keyof S]: StoreUpdaterFn<S[k]> };
 
 /** Function for updating a state key */
