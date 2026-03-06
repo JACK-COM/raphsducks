@@ -321,6 +321,11 @@ describe("Application State Manager", () => {
     expect(DefaultState.getState()).toStrictEqual(initialState);
     cleanup();
   });
+
+  it("Serializes a state instance", () => {
+    const str = DefaultState.serialize()
+    expect(typeof str).toBe("string")
+  })
 });
 
 describe("Application State High Intensity", () => {

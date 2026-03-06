@@ -40,8 +40,8 @@ class _ApplicationStore<T extends Record<string, any>> {
    * Get current state as a JSON string.
    * @returns String representation of state
    */
-  serialize() {
-    return this.state.toJSON();
+  serialize(modified?: Record<string, unknown>) {
+    return JSON.stringify(modified || this.state.toJSON());
   }
 
   /** Get [a copy of] the current application state */
