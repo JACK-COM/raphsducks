@@ -13,8 +13,8 @@ class _ApplicationStore<T extends Record<string, any>> {
   /** @private Copy of original state args */
   private ref: T | null = null;
 
-  /** @legacy Number of state Subscribers/Listeners */
-  subscribers = 0;
+  /** Number of state Subscribers/Listeners */
+  get subscribers() { return this._subscribers.size; }
 
   constructor(initialState: T) {
     if (Object.keys(initialState).length < 1) {
@@ -56,7 +56,7 @@ class _ApplicationStore<T extends Record<string, any>> {
     }, this.state);
 
     if (!this.state.equals(newState)) {
-      this.state = Map(newState);
+      this.state = newState;
       this.notifySubscribers(keysToUpdate);
     }
   }
@@ -68,11 +68,9 @@ class _ApplicationStore<T extends Record<string, any>> {
    */
   subscribe(listener: ListenerFn<T>): Unsubscriber {
     this._subscribers.add(listener);
-    this.subscribers = this._subscribers.size;
 
     return () => {
       this._subscribers.delete(listener);
-      this.subscribers = this._subscribers.size;
     };
   }
 
@@ -102,7 +100,7 @@ class _ApplicationStore<T extends Record<string, any>> {
 
       listener(
         listenerUpdates,
-        (updatedKeys as K[]).filter((k) => keys.includes(k))
+        Object.keys(listenerUpdates) as K[]
       );
     });
   }
@@ -142,7 +140,6 @@ class _ApplicationStore<T extends Record<string, any>> {
       // reset state to initial values without notifying subscribers
       this.state = Map(this.ref as T);
       this._subscribers.clear();
-      this.subscribers = 0;
     } else this.multiple(this.ref as T);
   }
 
