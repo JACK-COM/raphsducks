@@ -10,13 +10,14 @@
     "noImplicitAny": true,
     "noImplicitReturns": true,
     "noUnusedLocals": true,
-    "outDir": "./lib/",
     "resolveJsonModule": true,
     "sourceMap": false,
     "strict": true,
     "stripInternal": true,
     "target": "es5",
-    "useDefineForClassFields": true
+    "useDefineForClassFields": true,
+    "ignoreDeprecations": "6.0",
+    "types": ["node", "jest"]
   },
   "include": ["./src/**/*"],
   "exclude": ["./node_modules", "./lib", "./**/*.test.*"]
