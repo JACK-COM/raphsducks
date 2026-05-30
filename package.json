@@ -1,6 +1,6 @@
 {
   "name": "@jackcom/raphsducks",
-  "version": "3.2.0",
+  "version": "3.2.1",
   "description": "A lightweight pubsub (publish-subscribe) state manager.",
   "main": "./lib/index.js",
   "module": "./lib/index.mjs",
@@ -61,14 +61,15 @@
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
+    "@types/node": "^25.9.1",
     "husky": "^9.1.7",
-    "prettier": "^3.8.1",
-    "ts-jest": "^29.4.6",
+    "prettier": "^3.8.3",
+    "ts-jest": "^29.4.11",
     "ts-node": "^10.9.2",
     "tsup": "^8.5.1",
-    "typescript": "^5.9.3"
+    "typescript": "^6.0.3"
   },
   "dependencies": {
-    "immutable": "^5.1.5"
+    "immutable": "^5.1.6"
   }
 }
