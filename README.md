@@ -159,7 +159,7 @@ Cast object types in your initial state to avoid type assertion errors. This pre
       todos: { title: string, value: boolean }[];
       truthy: boolean;
       counter: number;
-      nullableString: string;
+      nullableString: string | null;
     };
     
     const initialState: MyState = { 

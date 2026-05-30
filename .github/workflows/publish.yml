@@ -1,0 +1,37 @@
+name: Publish
+
+# Publish to npm when a pull request is merged into main. `workflow_dispatch`
+# allows a manual run for the first release (a pull_request workflow runs from
+# the base branch's copy, so this file cannot trigger on the merge that adds it).
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  publish:
+    # Only on a manual run or an actually-merged PR (not a closed-without-merge).
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true }}
+    runs-on: ubuntu-latest
+    env:
+      HUSKY: "0" # skip git-hook install during `npm ci` in CI
+    permissions:
+      contents: read
+      id-token: write # required for npm trusted publishing (OIDC)
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          cache: npm
+      # Trusted publishing + automatic provenance need a recent npm CLI.
+      - run: npm install -g npm@latest
+      - run: npm ci
+      - run: npm run build
+      - run: npm test
+      # OIDC auth via the trusted-publisher config on npmjs.com; no token needed,
+      # provenance is attached automatically. --ignore-scripts skips the package's
+      # local-oriented postpublish `git push --tags`.
+      - run: npm publish --ignore-scripts --access public
