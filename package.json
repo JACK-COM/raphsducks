@@ -1,8 +1,36 @@
 {
   "name": "@jackcom/raphsducks",
-  "version": "3.1.3",
+  "version": "3.2.0",
   "description": "A lightweight pubsub (publish-subscribe) state manager.",
-  "main": "lib/index.js",
+  "main": "./lib/index.js",
+  "module": "./lib/index.mjs",
+  "types": "./lib/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./lib/index.d.mts",
+        "default": "./lib/index.mjs"
+      },
+      "require": {
+        "types": "./lib/index.d.ts",
+        "default": "./lib/index.js"
+      }
+    },
+    "./lib/types": {
+      "import": {
+        "types": "./lib/types.d.mts",
+        "default": "./lib/types.mjs"
+      },
+      "require": {
+        "types": "./lib/types.d.ts",
+        "default": "./lib/types.js"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib"
+  ],
   "keywords": [
     "state",
     "manager",
@@ -18,9 +46,7 @@
   "license": "WTFPL",
   "scripts": {
     "clean": "rm -rf lib/",
-    "build": "tsc",
-    "prebuild": "npm run clean",
-    "postbuild": "make compress",
+    "build": "tsup",
     "deploy": "npm run build && npm pack && npm publish",
     "deploy:black": "npm run build && npm pack && npm publish --tag black",
     "test-watch": "jest --watchAll --testTimeout=300000 --detectOpenHandles",
@@ -39,6 +65,7 @@
     "prettier": "^3.8.1",
     "ts-jest": "^29.4.6",
     "ts-node": "^10.9.2",
+    "tsup": "^8.5.1",
     "typescript": "^5.9.3"
   },
   "dependencies": {

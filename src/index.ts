@@ -175,8 +175,16 @@ class _ApplicationStore<T extends Record<string, any>> {
   }
 }
 
-// Make listener- and unsubscriber-function types available
-export type { ListenerFn, Unsubscriber } from "./types";
+// Re-export the full public type surface from the package root so consumers can
+// import every type from "@jackcom/raphsducks" directly. The "./lib/types"
+// subpath stays available (see package.json "exports") for back-compat.
+export type {
+  ApplicationState,
+  Store,
+  StoreUpdaterFn,
+  ListenerFn,
+  Unsubscriber
+} from "./types";
 
 /** Passed ref for retaining type definitions */
 const ApplicationStore = _ApplicationStore as { new <T>(s: T): Store<T> };
