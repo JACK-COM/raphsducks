@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  // The base config excludes tests so they stay out of the declaration emit.
+  // This override puts them back: swc strips types without checking them, so
+  // this is the only thing type-checking the test file.
+  "exclude": ["./node_modules", "./lib"],
+  "include": ["./src/**/*"]
+}
