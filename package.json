@@ -1,6 +1,6 @@
 {
   "name": "@jackcom/raphsducks",
-  "version": "3.2.2",
+  "version": "3.2.4",
   "description": "A lightweight pubsub (publish-subscribe) state manager.",
   "main": "./lib/index.js",
   "module": "./lib/index.mjs",
@@ -46,9 +46,10 @@
   "license": "WTFPL",
   "scripts": {
     "clean": "rm -rf lib/",
-    "build": "tsup",
+    "build": "tsup && tsc --emitDeclarationOnly && node scripts/emit-dts.mjs",
     "deploy": "npm run build && npm pack && npm publish",
     "deploy:black": "npm run build && npm pack && npm publish --tag black",
+    "typecheck": "tsc --noEmit -p tsconfig.test.json",
     "test-watch": "jest --watchAll --testTimeout=300000 --detectOpenHandles",
     "test": "jest --testTimeout=300000 --detectOpenHandles",
     "preview": "npm run build && npm pack && rm -rf *.tgz",
@@ -60,16 +61,23 @@
     "bamp-major": "npm version major -m \"%s\""
   },
   "devDependencies": {
+    "@swc/core": "^1.16.1",
+    "@swc/jest": "^0.2.39",
     "@types/jest": "^30.0.0",
-    "@types/node": "^26.0.1",
+    "@types/node": "^26.2.0",
     "husky": "^9.1.7",
-    "prettier": "^3.9.4",
-    "ts-jest": "^29.4.11",
-    "ts-node": "^10.9.2",
+    "jest": "^30.4.2",
+    "prettier": "^3.9.6",
     "tsup": "^8.5.1",
-    "typescript": "^6.0.3"
+    "typescript": "^7.0.2"
   },
   "dependencies": {
     "immutable": "^5.1.9"
+  },
+  "allowScripts": {
+    "@swc/core@1.16.1": true,
+    "esbuild@0.27.7": true,
+    "fsevents@2.3.3": true,
+    "unrs-resolver@1.12.2": true
   }
 }
