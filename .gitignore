@@ -18,3 +18,7 @@ lib/
 ehthumbs.db
 Thumbs.db
 *.tgz
+
+# Locket
+.memfind
+locket.json
