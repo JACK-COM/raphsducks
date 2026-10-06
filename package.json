@@ -61,13 +61,13 @@
     "bamp-major": "npm version major -m \"%s\""
   },
   "devDependencies": {
-    "@swc/core": "^1.16.1",
+    "@swc/core": "^1.16.13",
     "@swc/jest": "^0.2.39",
     "@types/jest": "^30.0.0",
-    "@types/node": "^26.2.0",
+    "@types/node": "^26.6.4",
     "husky": "^9.1.7",
-    "jest": "^30.4.2",
-    "prettier": "^3.9.6",
+    "jest": "^30.5.2",
+    "prettier": "^3.9.9",
     "tsup": "^8.5.1",
     "typescript": "^7.0.2"
   },
@@ -75,8 +75,8 @@
     "immutable": "^5.1.9"
   },
   "allowScripts": {
-    "@swc/core@1.16.1": true,
-    "esbuild@0.27.7": true,
+    "@swc/core@1.16.13": true,
+    "esbuild@0.27.2": true,
     "fsevents@2.3.3": true,
     "unrs-resolver@1.12.2": true
   }
