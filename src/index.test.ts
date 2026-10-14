@@ -1,97 +1,117 @@
-import createState from "./index";
-import { Unsubscriber } from "./types";
+import assert from "node:assert/strict";
+import { after, afterEach, describe, it, mock } from "node:test";
+import createState from "./index.ts";
+import type { Unsubscriber } from "./types.ts";
 
 const initialState = {
   todos: [] as unknown[],
   someBoolean: false as boolean | null,
-  someString: ""
+  someString: "",
 };
 // State Instances
 const DefaultState = createState(initialState);
 const UniqueState = createState(initialState);
 
-describe("Application State Manager", () => {
-  beforeEach(() => {});
+/** Passes when any recorded call received exactly `args` (jest's toHaveBeenCalledWith) */
+function assertCalledWith(
+  fn: { mock: { calls: { arguments: unknown[] }[] } },
+  ...args: unknown[]
+) {
+  const calls = fn.mock.calls.map((c) => c.arguments);
+  const matched = calls.some((received) => {
+    try {
+      assert.deepEqual(received, args);
+      return true;
+    } catch {
+      return false;
+    }
+  });
+  assert.ok(
+    matched,
+    `no call matched ${JSON.stringify(args)}; got ${JSON.stringify(calls)}`,
+  );
+}
 
+describe("Application State Manager", () => {
   afterEach(() => {
     DefaultState.reset();
     UniqueState.reset();
   });
 
-  afterAll(() => {
+  after(() => {
     DefaultState.reset(true);
     UniqueState.reset(true);
   });
 
   it("Initializes state with defined properties and default values", () => {
     const { todos, someBoolean } = DefaultState.getState();
-    expect(todos).toStrictEqual([]);
-    expect(someBoolean).toStrictEqual(false);
+    assert.deepEqual(todos, []);
+    assert.deepEqual(someBoolean, false);
   });
 
   it("Adds a property to unique state instance", () => {
     let uniqueState = UniqueState.getState();
-    expect(uniqueState.todos).toStrictEqual([]);
-    expect(uniqueState.someBoolean).toStrictEqual(false);
+    assert.deepEqual(uniqueState.todos, []);
+    assert.deepEqual(uniqueState.someBoolean, false);
 
     // Modify one state and compare
     DefaultState.todos([{ text: "Pet the cat", done: false }]);
 
     // compare
     const todos = DefaultState.getState().todos;
-    expect(todos.length).toBe(1);
-    expect(todos[0]).toStrictEqual({ text: "Pet the cat", done: false });
+    assert.equal(todos.length, 1);
+    assert.deepEqual(todos[0], { text: "Pet the cat", done: false });
 
     uniqueState = UniqueState.getState();
-    expect(uniqueState.todos.length).toBe(0);
+    assert.equal(uniqueState.todos.length, 0);
   });
 
   it("Accepts only initialized properties", () => {
-    expect(() => DefaultState.invalid(true)).toThrow();
+    assert.throws(() => DefaultState.invalid(true));
   });
 
   it("Updates a property ONCE if no other properties change", () => {
-    const listener = jest.fn();
+    const listener = mock.fn();
     const unsub = DefaultState.subscribe(listener);
-    expect(DefaultState.subscribers).toBe(1);
+    assert.equal(DefaultState.subscribers, 1);
 
     DefaultState.someBoolean(true);
     DefaultState.someBoolean(true); // call it twice
     DefaultState.someBoolean(true); // call it thrice
     DefaultState.someBoolean(true); // make it nice
-    expect(DefaultState.getState().someBoolean).toStrictEqual(true);
-    expect(listener).toHaveBeenCalledTimes(1);
+    assert.deepEqual(DefaultState.getState().someBoolean, true);
+    assert.equal(listener.mock.callCount(), 1);
     unsub();
-    expect(DefaultState.subscribers).toBe(0);
+    assert.equal(DefaultState.subscribers, 0);
   });
 
   it("Updates multiple properties before notifying subscribers once", () => {
-    const listener = jest.fn();
-    expect(DefaultState.subscribers).toBe(0);
+    const listener = mock.fn();
+    assert.equal(DefaultState.subscribers, 0);
     const unsub = DefaultState.subscribe(listener);
-    expect(DefaultState.subscribers).toBe(1);
+    assert.equal(DefaultState.subscribers, 1);
 
     let st = DefaultState.getState();
-    expect(st.someBoolean).toStrictEqual(false);
-    expect(st.todos.length).toBe(0);
+    assert.deepEqual(st.someBoolean, false);
+    assert.equal(st.todos.length, 0);
 
     DefaultState.multiple({
       someBoolean: true,
-      todos: [1, 2, 4]
+      todos: [1, 2, 4],
     });
     unsub();
-    expect(DefaultState.subscribers).toBe(0);
+    assert.equal(DefaultState.subscribers, 0);
 
     st = DefaultState.getState();
-    expect(st.someBoolean).toStrictEqual(true);
-    expect(st.todos.length).toBe(3);
-    expect(listener).toHaveBeenCalledTimes(1);
+    assert.deepEqual(st.someBoolean, true);
+    assert.equal(st.todos.length, 3);
+    assert.equal(listener.mock.callCount(), 1);
   });
 
   it("Notifies only listeners subscribed to its instance", () => {
-    const listener = jest.fn();
-    const uniqueListener = jest.fn();
-    const notEvenListening = jest.fn();
+    const listener = mock.fn();
+    const uniqueListener = mock.fn();
+    const notEvenListening = mock.fn();
     const unDefa = DefaultState.subscribe(listener);
     const unUniq = UniqueState.subscribe(uniqueListener);
     const cleanup = () => {
@@ -101,18 +121,17 @@ describe("Application State Manager", () => {
 
     // Updates
     DefaultState.someBoolean(true);
-    expect(listener).toHaveBeenCalledWith(
-      { ...initialState, someBoolean: true },
-      ["someBoolean"]
-    );
-    expect(uniqueListener).not.toHaveBeenCalled();
-    expect(notEvenListening).not.toHaveBeenCalled();
+    assertCalledWith(listener, { ...initialState, someBoolean: true }, [
+      "someBoolean",
+    ]);
+    assert.equal(uniqueListener.mock.callCount(), 0);
+    assert.equal(notEvenListening.mock.callCount(), 0);
     cleanup();
   });
 
   it("Subscribes a unique listener to state", () => {
     // Subscribe twice with the same function ref:
-    const spy = jest.fn();
+    const spy = mock.fn();
     const sub1 = UniqueState.subscribe(spy);
     const sub2 = UniqueState.subscribe(spy);
     const cleanup = () => {
@@ -122,127 +141,127 @@ describe("Application State Manager", () => {
 
     // Assert only one subscriber in relevant statae
     UniqueState.someString("hello!!");
-    expect(spy).toHaveBeenCalledTimes(1);
+    assert.equal(spy.mock.callCount(), 1);
     cleanup();
   });
 
   it("Subscribes a unique listener ONCE to state, then unsubscribes", () => {
-    const spy = jest.fn();
-    const unique = jest.fn();
+    const spy = mock.fn();
+    const unique = mock.fn();
     // Subscribe twice with the same function ref:
     const u1 = UniqueState.subscribeOnce(unique);
     const u2 = UniqueState.subscribeOnce(spy, "someBoolean");
     const cleanup = () => {
       u1();
       u2();
-      expect(UniqueState.subscribers).toBe(0);
+      assert.equal(UniqueState.subscribers, 0);
     };
 
     // Update a different key
     UniqueState.todos([123]);
-    expect(spy).not.toHaveBeenCalled();
+    assert.equal(spy.mock.callCount(), 0);
 
     // Update target key
     UniqueState.someBoolean(true);
-    expect(UniqueState.getState().someBoolean).toStrictEqual(true);
+    assert.deepEqual(UniqueState.getState().someBoolean, true);
 
     UniqueState.someBoolean(false);
-    expect(UniqueState.getState().someBoolean).toStrictEqual(false);
+    assert.deepEqual(UniqueState.getState().someBoolean, false);
 
     UniqueState.someBoolean(true);
-    expect(UniqueState.getState().someBoolean).toStrictEqual(true);
+    assert.deepEqual(UniqueState.getState().someBoolean, true);
 
     // assert spy has been unsubscribed
-    expect(unique).toHaveBeenCalledTimes(1);
-    expect(spy).toHaveBeenCalledTimes(1);
+    assert.equal(unique.mock.callCount(), 1);
+    assert.equal(spy.mock.callCount(), 1);
     cleanup();
   });
 
   it("Subscribes ONCE until a value is received, then unsubscribes", () => {
-    const spy = jest.fn();
+    const spy = mock.fn();
 
     // Subscribe twice with the same function ref:
     const cleanup = UniqueState.subscribeOnce(
       spy,
       "someBoolean",
-      (a) => a === false
+      (a) => a === false,
     );
 
     // Update a different key
     UniqueState.todos([123]);
-    expect(spy).not.toHaveBeenCalled();
+    assert.equal(spy.mock.callCount(), 0);
 
     // Update target key
     UniqueState.someBoolean(true);
-    expect(UniqueState.getState().someBoolean).toStrictEqual(true);
+    assert.deepEqual(UniqueState.getState().someBoolean, true);
     UniqueState.multiple({ someBoolean: null, todos: [] });
-    expect(UniqueState.getState().someBoolean).toStrictEqual(null);
-    expect(spy).not.toHaveBeenCalled();
+    assert.deepEqual(UniqueState.getState().someBoolean, null);
+    assert.equal(spy.mock.callCount(), 0);
 
     UniqueState.someBoolean(false);
-    expect(UniqueState.getState().someBoolean).toStrictEqual(false);
+    assert.deepEqual(UniqueState.getState().someBoolean, false);
     // assert spy has been unsubscribed
     cleanup();
 
     UniqueState.someBoolean(false);
-    expect(UniqueState.getState().someBoolean).toStrictEqual(false);
+    assert.deepEqual(UniqueState.getState().someBoolean, false);
     UniqueState.someBoolean(true);
-    expect(UniqueState.getState().someBoolean).toStrictEqual(true);
-    expect(spy).toHaveBeenCalledTimes(1);
+    assert.deepEqual(UniqueState.getState().someBoolean, true);
+    assert.equal(spy.mock.callCount(), 1);
   });
 
   it("subscribes to a subset of keys", () => {
-    const spy = jest.fn();
+    const spy = mock.fn();
     const cleanup = UniqueState.subscribeToKeys(spy, ["someString"]);
 
     UniqueState.someBoolean(false);
-    expect(spy).not.toHaveBeenCalled();
+    assert.equal(spy.mock.callCount(), 0);
 
     UniqueState.todos([1, 2, 3, 4, 5]);
-    expect(spy).not.toHaveBeenCalled();
+    assert.equal(spy.mock.callCount(), 0);
 
     UniqueState.someString("hello");
-    expect(spy).toHaveBeenCalledTimes(1);
-    expect(spy).toHaveBeenCalledWith({ someString: "hello" }, ["someString"]);
+    assert.equal(spy.mock.callCount(), 1);
+    assertCalledWith(spy, { someString: "hello" }, ["someString"]);
     cleanup();
   });
 
   it("subscribes to a subset of keys and expected values", () => {
-    const spy = jest.fn();
+    const spy = mock.fn();
     const key = "someString";
     const expected = "goodbye";
     const cleanup = UniqueState.subscribeToKeys(
       spy,
       [key],
-      (k, v) => k === key && v === expected
+      (k, v) => k === key && v === expected,
     );
 
     UniqueState.someBoolean(false);
-    expect(spy).not.toHaveBeenCalled();
+    assert.equal(spy.mock.callCount(), 0);
 
     UniqueState.todos([1, 2, 3, 4, 5]);
-    expect(spy).not.toHaveBeenCalled();
+    assert.equal(spy.mock.callCount(), 0);
 
     UniqueState.someString("hello");
-    expect(spy).not.toHaveBeenCalled();
+    assert.equal(spy.mock.callCount(), 0);
 
     UniqueState.multiple({
       someString: key,
       todos: [5, 4, 3, 2, 1],
-      someBoolean: true
+      someBoolean: true,
     });
-    expect(spy).not.toHaveBeenCalled();
+    assert.equal(spy.mock.callCount(), 0);
 
     UniqueState.someString("goodbye");
-    expect(spy).toHaveBeenCalledTimes(1);
-    expect(spy).toHaveBeenCalledWith({ [key]: expected }, [key]);
+    assert.equal(spy.mock.callCount(), 1);
+    assertCalledWith(spy, { [key]: expected }, [key]);
     cleanup();
   });
 
   it("Unsubscribes listeners from state instance", () => {
     // Test
-    const stub = jest.fn();
-    const poof = jest.fn();
+    const stub = mock.fn();
+    const poof = mock.fn();
     const unsubs: Unsubscriber[] = [];
     const cleanup = () => unsubs.forEach((sub) => sub());
 
@@ -251,37 +270,37 @@ describe("Application State Manager", () => {
       UniqueState.subscribe(poof),
       // Control
       DefaultState.subscribe(stub),
-      DefaultState.subscribe(poof)
+      DefaultState.subscribe(poof),
     );
 
     // start
     // trigger state change
     UniqueState.multiple({
       someBoolean: true,
-      todos: [{ text: "Pet the cat", done: false }]
+      todos: [{ text: "Pet the cat", done: false }],
     });
 
     cleanup();
     // trigger another state change
     UniqueState.multiple({
       someBoolean: true,
-      todos: [{ text: "Pets the cat", done: true }]
+      todos: [{ text: "Pets the cat", done: true }],
     });
     // assert subscribers were triggered
-    expect(stub).toHaveBeenCalledTimes(1);
-    expect(poof).toHaveBeenCalledTimes(1);
+    assert.equal(stub.mock.callCount(), 1);
+    assert.equal(poof.mock.callCount(), 1);
   });
 
   it("Resets state instance to inception while preserving subscribers", () => {
     // assert initial state
-    expect(UniqueState.getState()).toStrictEqual(initialState);
-    expect(DefaultState.getState()).toStrictEqual(initialState);
+    assert.deepEqual(UniqueState.getState(), initialState);
+    assert.deepEqual(DefaultState.getState(), initialState);
 
     // Updates
     const updates = {
       someBoolean: true,
       todos: [{ text: "Pet the cat", done: false }],
-      someString: "Hello"
+      someString: "Hello",
     };
 
     // trigger state change
@@ -289,43 +308,43 @@ describe("Application State Manager", () => {
     DefaultState.multiple(updates);
 
     // assert state was changed
-    expect(UniqueState.getState()).toStrictEqual(updates);
-    expect(DefaultState.getState()).toStrictEqual(updates);
+    assert.deepEqual(UniqueState.getState(), updates);
+    assert.deepEqual(DefaultState.getState(), updates);
 
     // Reset one state and confirm it changed
     UniqueState.reset();
-    expect(UniqueState.getState()).toStrictEqual(initialState);
-    expect(DefaultState.getState()).toStrictEqual(updates);
+    assert.deepEqual(UniqueState.getState(), initialState);
+    assert.deepEqual(DefaultState.getState(), updates);
   });
 
   it("Resets state instance to inception and removes subscribers", () => {
     // assert initial state
-    expect(UniqueState.getState()).toStrictEqual(initialState);
+    assert.deepEqual(UniqueState.getState(), initialState);
 
     // Updates
     const updates = {
       someBoolean: true,
       todos: [{ text: "Pet the cat", done: false }],
-      someString: "Hello"
+      someString: "Hello",
     };
 
-    const spyScriber = jest.fn();
+    const spyScriber = mock.fn();
     const cleanup = UniqueState.subscribe(spyScriber);
 
     // trigger state change
     UniqueState.multiple(updates);
     UniqueState.reset(true);
 
-    expect(spyScriber).toHaveBeenCalledTimes(1);
-    expect(UniqueState.getState()).toStrictEqual(initialState);
-    expect(DefaultState.getState()).toStrictEqual(initialState);
+    assert.equal(spyScriber.mock.callCount(), 1);
+    assert.deepEqual(UniqueState.getState(), initialState);
+    assert.deepEqual(DefaultState.getState(), initialState);
     cleanup();
   });
 
   it("Serializes a state instance", () => {
-    const str = DefaultState.serialize()
-    expect(typeof str).toBe("string")
-  })
+    const str = DefaultState.serialize();
+    assert.equal(typeof str, "string");
+  });
 });
 
 describe("Application State High Intensity", () => {
@@ -340,33 +359,36 @@ describe("Application State High Intensity", () => {
     listener: (state: any, k: string[]) => {
       console.assert(state);
       console.assert(k);
-    }
+    },
   };
-  const controlSpy = jest.spyOn(control, "listener");
-  const lastSpy = jest.spyOn(control, "lastOne");
+  const controlSpy = mock.method(control, "listener");
+  const lastSpy = mock.method(control, "lastOne");
 
-  it(`Sets up a ${limit} jest spies update`, () => {
+  it(`Sets up a ${limit} mock listeners update`, () => {
     do {
       // Subscribe 1000 spies 😧
       unsubscribers.push(
         i === limit - 1
           ? isolated.subscribe(control.lastOne)
-          : isolated.subscribe(jest.fn())
+          : // A fresh closure per pass (subscribe dedupes by reference). Not
+            // mock.fn(): node:test stores a stack trace per call, and the
+            // next test's ~4M calls exhaust the heap.
+            isolated.subscribe(() => {}),
       );
       i += 1;
     } while (i < limit);
-    expect(unsubscribers.length).toStrictEqual(limit);
-    expect(isolated.subscribers).toStrictEqual(limit);
-    expect(i).toStrictEqual(limit);
-    expect(controlSpy).toHaveBeenCalledTimes(0);
-    expect(lastSpy).toHaveBeenCalledTimes(0);
+    assert.deepEqual(unsubscribers.length, limit);
+    assert.deepEqual(isolated.subscribers, limit);
+    assert.deepEqual(i, limit);
+    assert.equal(controlSpy.mock.callCount(), 0);
+    assert.equal(lastSpy.mock.callCount(), 0);
     i = 0;
   });
 
-  it(`Handles a ${limit * 10} jest spies update`, () => {
+  it(`Handles a ${limit * 10} mock listeners update`, () => {
     const cleanup = isolated.subscribe(control.listener);
     console.log(
-      `start ${limit * 10} updates for ${isolated.subscribers} listeners`
+      `start ${limit * 10} updates for ${isolated.subscribers} listeners`,
     );
     // make changes
     do {
@@ -375,10 +397,10 @@ describe("Application State High Intensity", () => {
     } while (i < limit * 10);
     const { count: final } = isolated.getState();
     console.log(`completed ${limit * 10} updates`);
-    expect(final).toStrictEqual(limit * 10);
-    expect(final).not.toStrictEqual(initial.count);
-    expect(controlSpy).toHaveBeenCalledTimes(final);
-    expect(lastSpy).toHaveBeenCalledTimes(final);
+    assert.deepEqual(final, limit * 10);
+    assert.notDeepEqual(final, initial.count);
+    assert.equal(controlSpy.mock.callCount(), final);
+    assert.equal(lastSpy.mock.callCount(), final);
 
     // clear it all dammit. This test has earned itself a beer.
     isolated.reset(true);

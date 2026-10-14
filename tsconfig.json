@@ -17,7 +17,7 @@
     "stripInternal": true,
     "target": "es2020",
     "useDefineForClassFields": true,
-    "types": ["node", "jest"]
+    "types": ["node"]
   },
   "include": ["./src/**/*"],
   "exclude": ["./node_modules", "./lib", "./**/*.test.*"]

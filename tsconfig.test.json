@@ -1,10 +1,14 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "noEmit": true
+    "noEmit": true,
+    // node --test runs the .ts sources directly by stripping types: imports
+    // need their real ".ts" extension, and syntax must be erasable.
+    "allowImportingTsExtensions": true,
+    "erasableSyntaxOnly": true
   },
   // The base config excludes tests so they stay out of the declaration emit.
-  // This override puts them back: swc strips types without checking them, so
+  // This override puts them back: node strips types without checking them, so
   // this is the only thing type-checking the test file.
   "exclude": ["./node_modules", "./lib"],
   "include": ["./src/**/*"]

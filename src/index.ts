@@ -1,5 +1,5 @@
 import { Map } from "immutable";
-import { ListenerFn, Store, Unsubscriber } from "./types";
+import type { ListenerFn, Store, Unsubscriber } from "./types";
 
 class _ApplicationStore<T extends Record<string, any>> {
   [x: string]: any;
