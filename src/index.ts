@@ -14,7 +14,9 @@ class _ApplicationStore<T extends Record<string, any>> {
   private ref: T | null = null;
 
   /** Number of state Subscribers/Listeners */
-  get subscribers() { return this._subscribers.size; }
+  get subscribers() {
+    return this._subscribers.size;
+  }
 
   constructor(initialState: T) {
     if (Object.keys(initialState).length < 1) {
@@ -98,10 +100,7 @@ class _ApplicationStore<T extends Record<string, any>> {
 
       if (Object.keys(listenerUpdates).length === 0) return;
 
-      listener(
-        listenerUpdates,
-        Object.keys(listenerUpdates) as K[]
-      );
+      listener(listenerUpdates, Object.keys(listenerUpdates) as K[]);
     });
   }
 
